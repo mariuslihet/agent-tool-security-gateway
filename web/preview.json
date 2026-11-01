@@ -1,0 +1,2539 @@
+{
+  "sample": true,
+  "generatedAt": 1793540207827,
+  "status": {
+    "identity": {
+      "principal": "sample-viewer",
+      "tenant": "demo",
+      "role": "viewer"
+    },
+    "version": "0.2.0",
+    "policy": {
+      "version": "baseline-v1",
+      "hash": "e846670517bb67994ea2fa82ae7da5555cfcddd0e2e00c3c252b310420beeab4"
+    },
+    "registryHash": "d0bf0df18ec2e3edcc4fc489da25cd63d6b6000f94e00de4879a7ddc2745f3de",
+    "audit": {
+      "valid": null,
+      "verifiedAt": null
+    },
+    "statistics": {
+      "counts": {
+        "approval.required|OK": 2,
+        "capability.revoked|OK": 1,
+        "execution.denied|POLICY_DENIED": 1,
+        "execution.denied|SENSITIVE_EGRESS_DENIED": 1,
+        "execution.denied|UNTRUSTED_EGRESS_DENIED": 1,
+        "execution.finished|OK": 12,
+        "execution.started|OK": 12,
+        "request.rejected|CALL_BUDGET_EXCEEDED": 1,
+        "session.created|OK": 6
+      },
+      "sessions": 6,
+      "latency": {
+        "averageMs": 9,
+        "samples": 12
+      },
+      "activity": [
+        {
+          "at": 1793455200000,
+          "allowed": 0,
+          "blocked": 0,
+          "approvals": 0
+        },
+        {
+          "at": 1793458800000,
+          "allowed": 0,
+          "blocked": 0,
+          "approvals": 0
+        },
+        {
+          "at": 1793462400000,
+          "allowed": 0,
+          "blocked": 0,
+          "approvals": 0
+        },
+        {
+          "at": 1793466000000,
+          "allowed": 0,
+          "blocked": 0,
+          "approvals": 0
+        },
+        {
+          "at": 1793469600000,
+          "allowed": 0,
+          "blocked": 0,
+          "approvals": 0
+        },
+        {
+          "at": 1793473200000,
+          "allowed": 0,
+          "blocked": 0,
+          "approvals": 0
+        },
+        {
+          "at": 1793476800000,
+          "allowed": 0,
+          "blocked": 0,
+          "approvals": 0
+        },
+        {
+          "at": 1793480400000,
+          "allowed": 0,
+          "blocked": 0,
+          "approvals": 0
+        },
+        {
+          "at": 1793484000000,
+          "allowed": 0,
+          "blocked": 0,
+          "approvals": 0
+        },
+        {
+          "at": 1793487600000,
+          "allowed": 0,
+          "blocked": 0,
+          "approvals": 0
+        },
+        {
+          "at": 1793491200000,
+          "allowed": 0,
+          "blocked": 0,
+          "approvals": 0
+        },
+        {
+          "at": 1793494800000,
+          "allowed": 0,
+          "blocked": 0,
+          "approvals": 0
+        },
+        {
+          "at": 1793498400000,
+          "allowed": 0,
+          "blocked": 0,
+          "approvals": 0
+        },
+        {
+          "at": 1793502000000,
+          "allowed": 0,
+          "blocked": 0,
+          "approvals": 0
+        },
+        {
+          "at": 1793505600000,
+          "allowed": 0,
+          "blocked": 0,
+          "approvals": 0
+        },
+        {
+          "at": 1793509200000,
+          "allowed": 0,
+          "blocked": 0,
+          "approvals": 0
+        },
+        {
+          "at": 1793512800000,
+          "allowed": 0,
+          "blocked": 0,
+          "approvals": 0
+        },
+        {
+          "at": 1793516400000,
+          "allowed": 0,
+          "blocked": 0,
+          "approvals": 0
+        },
+        {
+          "at": 1793520000000,
+          "allowed": 0,
+          "blocked": 0,
+          "approvals": 0
+        },
+        {
+          "at": 1793523600000,
+          "allowed": 0,
+          "blocked": 0,
+          "approvals": 0
+        },
+        {
+          "at": 1793527200000,
+          "allowed": 0,
+          "blocked": 0,
+          "approvals": 0
+        },
+        {
+          "at": 1793530800000,
+          "allowed": 0,
+          "blocked": 0,
+          "approvals": 0
+        },
+        {
+          "at": 1793534400000,
+          "allowed": 0,
+          "blocked": 0,
+          "approvals": 0
+        },
+        {
+          "at": 1793538000000,
+          "allowed": 12,
+          "blocked": 4,
+          "approvals": 2
+        }
+      ],
+      "scope": "durable",
+      "windowHours": 24
+    },
+    "approvals": [
+      {
+        "sessionId": "9a667787-e04f-4eca-9bb8-2f5f7523cdab",
+        "requestId": "payment",
+        "principal": "demo-agent",
+        "tool": "payment.send",
+        "arguments": {
+          "account": "vendor-approved",
+          "amountCents": 12500
+        },
+        "binding": "c165a7cfca3865298a0ea6de555d1f9c15c512019dc62493c903fefef00ffaa0",
+        "created": 1793540207814,
+        "ruleIds": [
+          "review-payment"
+        ],
+        "expires": 1793540507814,
+        "id": "b6c15c07-9a00-41ff-9ae8-0940c9027d00",
+        "state": "pending",
+        "reason": "",
+        "expired": false
+      },
+      {
+        "sessionId": "d64a9eeb-ce65-4c48-abcc-06d526ffdff6",
+        "requestId": "publish",
+        "principal": "demo-agent",
+        "tool": "report.publish",
+        "arguments": {
+          "body": "The daily operations summary is ready for review.",
+          "url": "https://reports.example.com/daily"
+        },
+        "binding": "15e68a380eab52d7e5682d6bb1d39da1a0a92abf29a708086c19c99bed1818dc",
+        "created": 1793540207805,
+        "ruleIds": [
+          "allow-report",
+          "redact-report-body",
+          "review-publishing"
+        ],
+        "expires": 1793540507805,
+        "id": "4f3c0a76-9457-41ee-827e-ae015df58409",
+        "state": "pending",
+        "reason": "",
+        "expired": false
+      }
+    ],
+    "events": [
+      {
+        "sequence": 37,
+        "approver": "sample-operator",
+        "at": 1793540207819,
+        "eventId": "534f2e05-48e4-4998-b222-f0aea7ca37e9",
+        "target": "df9d826d-835a-4c43-8778-fb0374039599",
+        "targetType": "session",
+        "tenant": "demo",
+        "type": "capability.revoked",
+        "previous": "c020f664173dd37097d1c69f596669555ca47e8524157af145d3cb468761c469",
+        "signature": "2625b9d5fe92a627d16dbd8a3aad7d40603f9988fa01a5a1e7ef8f19816f6c9b"
+      },
+      {
+        "sequence": 36,
+        "at": 1793540207819,
+        "eventId": "3c3a8266-81ed-42ca-b777-db48a76727e1",
+        "parent": null,
+        "principal": "demo-agent",
+        "session": "df9d826d-835a-4c43-8778-fb0374039599",
+        "tenant": "demo",
+        "type": "session.created",
+        "previous": "d372b458a951572301a5ea4b871644ae5b9615141b43e0596a7c9d190a7e0c2a",
+        "signature": "c020f664173dd37097d1c69f596669555ca47e8524157af145d3cb468761c469"
+      },
+      {
+        "sequence": 35,
+        "at": 1793540207818,
+        "code": "CALL_BUDGET_EXCEEDED",
+        "eventId": "4d1fe5a0-4a1a-4b51-89aa-a8a2e9d37f4a",
+        "principal": "demo-agent",
+        "tenant": "demo",
+        "type": "request.rejected",
+        "previous": "3571bfc4a912544be58e0bbd7135f8660d77483755c4d94574dd541c07add4de",
+        "signature": "d372b458a951572301a5ea4b871644ae5b9615141b43e0596a7c9d190a7e0c2a"
+      },
+      {
+        "sequence": 34,
+        "at": 1793540207818,
+        "durationMs": 1,
+        "eventId": "9c4e5696-dd05-4609-b25b-b7f1491564d2",
+        "findings": [],
+        "outputBytes": 70,
+        "request": "two",
+        "session": "6569260f-46f1-4245-a520-f3ea9ffbfba2",
+        "status": "completed",
+        "tenant": "demo",
+        "tool": "knowledge.read",
+        "type": "execution.finished",
+        "previous": "5bb1431fdd880a13d164a990011df390877c5b6836aa97e751b90a3627dbfb1d",
+        "signature": "3571bfc4a912544be58e0bbd7135f8660d77483755c4d94574dd541c07add4de"
+      },
+      {
+        "sequence": 33,
+        "at": 1793540207817,
+        "binding": "bbe46615e6cb8c691e73ba3b1a3ca4b86f11ad7ca506268d078a4e81526d0e31",
+        "eventId": "b7f719be-f67b-4542-a630-fd6350523560",
+        "principal": "demo-agent",
+        "request": "two",
+        "ruleIds": [
+          "allow-read-compute"
+        ],
+        "session": "6569260f-46f1-4245-a520-f3ea9ffbfba2",
+        "tenant": "demo",
+        "tool": "knowledge.read",
+        "transformed": false,
+        "type": "execution.started",
+        "previous": "23b658b4bf706854f860b98222d6d04f5190259622bfba834c395e3a2fb6a815",
+        "signature": "5bb1431fdd880a13d164a990011df390877c5b6836aa97e751b90a3627dbfb1d"
+      },
+      {
+        "sequence": 32,
+        "at": 1793540207817,
+        "durationMs": 1,
+        "eventId": "591ed574-d0f8-4d5e-89e0-76059a3044c5",
+        "findings": [],
+        "outputBytes": 70,
+        "request": "one",
+        "session": "6569260f-46f1-4245-a520-f3ea9ffbfba2",
+        "status": "completed",
+        "tenant": "demo",
+        "tool": "knowledge.read",
+        "type": "execution.finished",
+        "previous": "12c9b83a6c90cf203a3b636f450f2c77a20583d81e75a5ad19702bba265c9a15",
+        "signature": "23b658b4bf706854f860b98222d6d04f5190259622bfba834c395e3a2fb6a815"
+      },
+      {
+        "sequence": 31,
+        "at": 1793540207816,
+        "binding": "f4b415acd57ab3b6f0f3ebd16e72d50922afb0bac9b4be6fd8f132e8ebfe3248",
+        "eventId": "dee6e140-12dc-445d-8f68-b008d660665b",
+        "principal": "demo-agent",
+        "request": "one",
+        "ruleIds": [
+          "allow-read-compute"
+        ],
+        "session": "6569260f-46f1-4245-a520-f3ea9ffbfba2",
+        "tenant": "demo",
+        "tool": "knowledge.read",
+        "transformed": false,
+        "type": "execution.started",
+        "previous": "6d62dadc773e5bf9a8388447446867b64aaa57f976ff3c9b192cd48a58effac0",
+        "signature": "12c9b83a6c90cf203a3b636f450f2c77a20583d81e75a5ad19702bba265c9a15"
+      },
+      {
+        "sequence": 30,
+        "at": 1793540207816,
+        "eventId": "a7ee61bc-3b07-48ed-a468-c675ac438c5b",
+        "parent": null,
+        "principal": "demo-agent",
+        "session": "6569260f-46f1-4245-a520-f3ea9ffbfba2",
+        "tenant": "demo",
+        "type": "session.created",
+        "previous": "9fb9db84aaf223858dbe7bd1bfb127a56696167aa7a247370e514c9e2dd40a4f",
+        "signature": "6d62dadc773e5bf9a8388447446867b64aaa57f976ff3c9b192cd48a58effac0"
+      }
+    ]
+  },
+  "policy": {
+    "policy": {
+      "limits": {
+        "approvalTtlMs": 300000,
+        "maxArgumentBytes": 32768,
+        "maxOutputBytes": 65536
+      },
+      "rules": [
+        {
+          "effect": "deny",
+          "id": "block-injection",
+          "tools": [
+            "*"
+          ],
+          "when": [
+            {
+              "field": "findings",
+              "op": "contains",
+              "value": "PROMPT_INJECTION_SIGNAL"
+            }
+          ]
+        },
+        {
+          "effect": "deny",
+          "id": "block-encoded-injection",
+          "tools": [
+            "*"
+          ],
+          "when": [
+            {
+              "field": "findings",
+              "op": "contains",
+              "value": "ENCODED_INJECTION_SIGNAL"
+            }
+          ]
+        },
+        {
+          "effect": "allow",
+          "id": "allow-read-compute",
+          "tools": [
+            "knowledge.read",
+            "external.read",
+            "vault.read",
+            "compute.sum",
+            "text.encode"
+          ],
+          "when": []
+        },
+        {
+          "effect": "allow",
+          "id": "allow-report",
+          "tools": [
+            "report.publish"
+          ],
+          "when": []
+        },
+        {
+          "effect": "sanitize",
+          "id": "redact-report-body",
+          "redactFields": [
+            "body"
+          ],
+          "tools": [
+            "report.publish"
+          ],
+          "when": []
+        },
+        {
+          "effect": "approval",
+          "id": "review-publishing",
+          "tools": [
+            "report.publish"
+          ],
+          "when": []
+        },
+        {
+          "effect": "approval",
+          "id": "review-payment",
+          "tools": [
+            "payment.send"
+          ],
+          "when": []
+        },
+        {
+          "effect": "deny",
+          "id": "block-large-payment",
+          "tools": [
+            "payment.send"
+          ],
+          "when": [
+            {
+              "field": "arguments.amountCents",
+              "op": "gte",
+              "value": 100001
+            }
+          ]
+        }
+      ],
+      "version": "baseline-v1"
+    },
+    "hash": "e846670517bb67994ea2fa82ae7da5555cfcddd0e2e00c3c252b310420beeab4",
+    "tools": [
+      {
+        "cost": 1,
+        "description": "Read the host-controlled operations handbook.",
+        "egress": false,
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "document": {
+              "enum": [
+                "handbook"
+              ],
+              "maxLength": 8192,
+              "type": "string"
+            }
+          },
+          "required": [
+            "document"
+          ],
+          "type": "object"
+        },
+        "name": "knowledge.read",
+        "outputLabels": [],
+        "outputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "text": {
+              "maxLength": 8192,
+              "type": "string"
+            }
+          },
+          "required": [
+            "text"
+          ],
+          "type": "object"
+        },
+        "timeoutMs": 3000,
+        "fingerprint": "f12d29637acab93be061052043c9d0968482b741b12140afbf43e21cfc0381b3"
+      },
+      {
+        "cost": 1,
+        "description": "Read an untrusted sample page while preserving its provenance.",
+        "egress": false,
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "document": {
+              "enum": [
+                "web-page"
+              ],
+              "maxLength": 8192,
+              "type": "string"
+            }
+          },
+          "required": [
+            "document"
+          ],
+          "type": "object"
+        },
+        "name": "external.read",
+        "outputLabels": [
+          "untrusted"
+        ],
+        "outputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "text": {
+              "maxLength": 8192,
+              "type": "string"
+            }
+          },
+          "required": [
+            "text"
+          ],
+          "type": "object"
+        },
+        "timeoutMs": 3000,
+        "fingerprint": "876448256722c766bafb8b386550e40357aa567ad3d56d53c39a1868b34f7cf5"
+      },
+      {
+        "cost": 1,
+        "description": "Read a confidential sample invoice and classify its data as sensitive.",
+        "egress": false,
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "record": {
+              "enum": [
+                "invoice"
+              ],
+              "maxLength": 8192,
+              "type": "string"
+            }
+          },
+          "required": [
+            "record"
+          ],
+          "type": "object"
+        },
+        "name": "vault.read",
+        "outputLabels": [
+          "sensitive"
+        ],
+        "outputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "text": {
+              "maxLength": 8192,
+              "type": "string"
+            }
+          },
+          "required": [
+            "text"
+          ],
+          "type": "object"
+        },
+        "timeoutMs": 3000,
+        "fingerprint": "89154e61bef2f8195da3f9740e32672a409e365685bcddfcb3197d90cf09dda2"
+      },
+      {
+        "cost": 1,
+        "description": "Sum validated numbers in a restricted, fixed-code worker.",
+        "egress": false,
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "numbers": {
+              "items": {
+                "maximum": 1000000,
+                "minimum": -1000000,
+                "type": "number"
+              },
+              "maxItems": 100,
+              "type": "array"
+            }
+          },
+          "required": [
+            "numbers"
+          ],
+          "type": "object"
+        },
+        "name": "compute.sum",
+        "outputLabels": [],
+        "outputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "sum": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "sum"
+          ],
+          "type": "object"
+        },
+        "timeoutMs": 3000,
+        "fingerprint": "0a968e29832c227099c93c2e561578676e00aea8bde7f4880834b5916f8b2a36"
+      },
+      {
+        "cost": 1,
+        "description": "Encode text as base64 without clearing inherited data labels.",
+        "egress": false,
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "text": {
+              "maxLength": 8192,
+              "type": "string"
+            }
+          },
+          "required": [
+            "text"
+          ],
+          "type": "object"
+        },
+        "name": "text.encode",
+        "outputLabels": [],
+        "outputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "encoded": {
+              "maxLength": 16384,
+              "type": "string"
+            }
+          },
+          "required": [
+            "encoded"
+          ],
+          "type": "object"
+        },
+        "timeoutMs": 3000,
+        "fingerprint": "47071e455275d74409150754355e7e06533d6f8823ce5419a549d43653b2a4df"
+      },
+      {
+        "cost": 1,
+        "description": "Simulate publishing a report to an approved HTTPS origin.",
+        "destinationField": "url",
+        "egress": true,
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "body": {
+              "maxLength": 8192,
+              "type": "string"
+            },
+            "url": {
+              "format": "https-url",
+              "maxLength": 2048,
+              "type": "string"
+            }
+          },
+          "required": [
+            "url",
+            "body"
+          ],
+          "type": "object"
+        },
+        "name": "report.publish",
+        "outputLabels": [],
+        "outputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "delivered": {
+              "type": "boolean"
+            },
+            "mode": {
+              "enum": [
+                "simulation"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "delivered",
+            "mode"
+          ],
+          "type": "object"
+        },
+        "timeoutMs": 3000,
+        "fingerprint": "5fd29d2c6dc99663d0259c883173f3dfb71bd806550ace8bcea66124e662dfee"
+      },
+      {
+        "cost": 10,
+        "description": "Simulate a vendor payment with human review and an amount ceiling.",
+        "egress": true,
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "account": {
+              "enum": [
+                "vendor-approved"
+              ],
+              "maxLength": 8192,
+              "type": "string"
+            },
+            "amountCents": {
+              "maximum": 1000000,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "account",
+            "amountCents"
+          ],
+          "type": "object"
+        },
+        "name": "payment.send",
+        "outputLabels": [],
+        "outputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "charged": {
+              "type": "boolean"
+            },
+            "mode": {
+              "enum": [
+                "simulation"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "charged",
+            "mode"
+          ],
+          "type": "object"
+        },
+        "timeoutMs": 3000,
+        "fingerprint": "f6f3c2bc7031ceafd70742c82c7b5607e4cbce3c0f831051a5f03b5d0b0280b3"
+      }
+    ],
+    "writable": false
+  },
+  "sessions": {
+    "items": [
+      {
+        "id": "df9d826d-835a-4c43-8778-fb0374039599",
+        "principal": "demo-agent",
+        "tenant": "demo",
+        "parentId": null,
+        "created": 1793540207818,
+        "expires": 1793543807818,
+        "status": "revoked",
+        "labels": [],
+        "usage": {
+          "calls": 0,
+          "cost": 0,
+          "outputBytes": 0,
+          "active": 0
+        },
+        "limits": {
+          "maxCalls": 50,
+          "maxConcurrent": 2,
+          "maxCost": 100,
+          "maxOutputBytes": 262144,
+          "ttlMs": 3600000
+        },
+        "policyHash": "e846670517bb67994ea2fa82ae7da5555cfcddd0e2e00c3c252b310420beeab4",
+        "toolCount": 7
+      },
+      {
+        "id": "6569260f-46f1-4245-a520-f3ea9ffbfba2",
+        "principal": "demo-agent",
+        "tenant": "demo",
+        "parentId": null,
+        "created": 1793540207815,
+        "expires": 1793543807815,
+        "status": "active",
+        "labels": [],
+        "usage": {
+          "calls": 2,
+          "cost": 2,
+          "outputBytes": 140,
+          "active": 0
+        },
+        "limits": {
+          "maxCalls": 2,
+          "maxConcurrent": 1,
+          "maxCost": 2,
+          "maxOutputBytes": 4096,
+          "ttlMs": 3600000
+        },
+        "policyHash": "e846670517bb67994ea2fa82ae7da5555cfcddd0e2e00c3c252b310420beeab4",
+        "toolCount": 7
+      },
+      {
+        "id": "9a667787-e04f-4eca-9bb8-2f5f7523cdab",
+        "principal": "demo-agent",
+        "tenant": "demo",
+        "parentId": null,
+        "created": 1793540207813,
+        "expires": 1793543807813,
+        "status": "active",
+        "labels": [],
+        "usage": {
+          "calls": 2,
+          "cost": 0,
+          "outputBytes": 0,
+          "active": 0
+        },
+        "limits": {
+          "maxCalls": 50,
+          "maxConcurrent": 2,
+          "maxCost": 100,
+          "maxOutputBytes": 262144,
+          "ttlMs": 3600000
+        },
+        "policyHash": "e846670517bb67994ea2fa82ae7da5555cfcddd0e2e00c3c252b310420beeab4",
+        "toolCount": 7
+      },
+      {
+        "id": "5b149a13-411a-41bb-81db-60acfe262134",
+        "principal": "demo-agent",
+        "tenant": "demo",
+        "parentId": null,
+        "created": 1793540207810,
+        "expires": 1793543807810,
+        "status": "active",
+        "labels": [
+          "untrusted"
+        ],
+        "usage": {
+          "calls": 2,
+          "cost": 1,
+          "outputBytes": 81,
+          "active": 0
+        },
+        "limits": {
+          "maxCalls": 50,
+          "maxConcurrent": 2,
+          "maxCost": 100,
+          "maxOutputBytes": 262144,
+          "ttlMs": 3600000
+        },
+        "policyHash": "e846670517bb67994ea2fa82ae7da5555cfcddd0e2e00c3c252b310420beeab4",
+        "toolCount": 7
+      },
+      {
+        "id": "8cf8089b-c30b-4c9d-93ac-0f26b28d43d8",
+        "principal": "demo-agent",
+        "tenant": "demo",
+        "parentId": null,
+        "created": 1793540207806,
+        "expires": 1793543807806,
+        "status": "active",
+        "labels": [
+          "sensitive"
+        ],
+        "usage": {
+          "calls": 3,
+          "cost": 2,
+          "outputBytes": 116,
+          "active": 0
+        },
+        "limits": {
+          "maxCalls": 50,
+          "maxConcurrent": 2,
+          "maxCost": 100,
+          "maxOutputBytes": 262144,
+          "ttlMs": 3600000
+        },
+        "policyHash": "e846670517bb67994ea2fa82ae7da5555cfcddd0e2e00c3c252b310420beeab4",
+        "toolCount": 7
+      },
+      {
+        "id": "d64a9eeb-ce65-4c48-abcc-06d526ffdff6",
+        "principal": "demo-agent",
+        "tenant": "demo",
+        "parentId": null,
+        "created": 1793540207700,
+        "expires": 1793543807700,
+        "status": "active",
+        "labels": [],
+        "usage": {
+          "calls": 8,
+          "cost": 7,
+          "outputBytes": 431,
+          "active": 0
+        },
+        "limits": {
+          "maxCalls": 50,
+          "maxConcurrent": 2,
+          "maxCost": 100,
+          "maxOutputBytes": 262144,
+          "ttlMs": 3600000
+        },
+        "policyHash": "e846670517bb67994ea2fa82ae7da5555cfcddd0e2e00c3c252b310420beeab4",
+        "toolCount": 7
+      }
+    ],
+    "nextCursor": null
+  },
+  "details": {
+    "df9d826d-835a-4c43-8778-fb0374039599": {
+      "session": {
+        "id": "df9d826d-835a-4c43-8778-fb0374039599",
+        "principal": "demo-agent",
+        "tenant": "demo",
+        "parentId": null,
+        "created": 1793540207818,
+        "expires": 1793543807818,
+        "status": "revoked",
+        "labels": [],
+        "usage": {
+          "calls": 0,
+          "cost": 0,
+          "outputBytes": 0,
+          "active": 0
+        },
+        "limits": {
+          "maxCalls": 50,
+          "maxConcurrent": 2,
+          "maxCost": 100,
+          "maxOutputBytes": 262144,
+          "ttlMs": 3600000
+        },
+        "policyHash": "e846670517bb67994ea2fa82ae7da5555cfcddd0e2e00c3c252b310420beeab4",
+        "grants": [
+          {
+            "fingerprint": "f12d29637acab93be061052043c9d0968482b741b12140afbf43e21cfc0381b3",
+            "origins": [],
+            "tool": "knowledge.read",
+            "values": {},
+            "revoked": false
+          },
+          {
+            "fingerprint": "876448256722c766bafb8b386550e40357aa567ad3d56d53c39a1868b34f7cf5",
+            "origins": [],
+            "tool": "external.read",
+            "values": {},
+            "revoked": false
+          },
+          {
+            "fingerprint": "89154e61bef2f8195da3f9740e32672a409e365685bcddfcb3197d90cf09dda2",
+            "origins": [],
+            "tool": "vault.read",
+            "values": {},
+            "revoked": false
+          },
+          {
+            "fingerprint": "0a968e29832c227099c93c2e561578676e00aea8bde7f4880834b5916f8b2a36",
+            "origins": [],
+            "tool": "compute.sum",
+            "values": {},
+            "revoked": false
+          },
+          {
+            "fingerprint": "47071e455275d74409150754355e7e06533d6f8823ce5419a549d43653b2a4df",
+            "origins": [],
+            "tool": "text.encode",
+            "values": {},
+            "revoked": false
+          },
+          {
+            "fingerprint": "5fd29d2c6dc99663d0259c883173f3dfb71bd806550ace8bcea66124e662dfee",
+            "origins": [
+              "https://reports.example.com"
+            ],
+            "tool": "report.publish",
+            "values": {},
+            "revoked": false
+          },
+          {
+            "fingerprint": "f6f3c2bc7031ceafd70742c82c7b5607e4cbce3c0f831051a5f03b5d0b0280b3",
+            "origins": [],
+            "tool": "payment.send",
+            "values": {},
+            "revoked": false
+          }
+        ]
+      },
+      "events": [
+        {
+          "sequence": 36,
+          "at": 1793540207819,
+          "eventId": "3c3a8266-81ed-42ca-b777-db48a76727e1",
+          "parent": null,
+          "principal": "demo-agent",
+          "session": "df9d826d-835a-4c43-8778-fb0374039599",
+          "tenant": "demo",
+          "type": "session.created",
+          "previous": "d372b458a951572301a5ea4b871644ae5b9615141b43e0596a7c9d190a7e0c2a",
+          "signature": "c020f664173dd37097d1c69f596669555ca47e8524157af145d3cb468761c469"
+        }
+      ]
+    },
+    "6569260f-46f1-4245-a520-f3ea9ffbfba2": {
+      "session": {
+        "id": "6569260f-46f1-4245-a520-f3ea9ffbfba2",
+        "principal": "demo-agent",
+        "tenant": "demo",
+        "parentId": null,
+        "created": 1793540207815,
+        "expires": 1793543807815,
+        "status": "active",
+        "labels": [],
+        "usage": {
+          "calls": 2,
+          "cost": 2,
+          "outputBytes": 140,
+          "active": 0
+        },
+        "limits": {
+          "maxCalls": 2,
+          "maxConcurrent": 1,
+          "maxCost": 2,
+          "maxOutputBytes": 4096,
+          "ttlMs": 3600000
+        },
+        "policyHash": "e846670517bb67994ea2fa82ae7da5555cfcddd0e2e00c3c252b310420beeab4",
+        "grants": [
+          {
+            "fingerprint": "f12d29637acab93be061052043c9d0968482b741b12140afbf43e21cfc0381b3",
+            "origins": [],
+            "tool": "knowledge.read",
+            "values": {},
+            "revoked": false
+          },
+          {
+            "fingerprint": "876448256722c766bafb8b386550e40357aa567ad3d56d53c39a1868b34f7cf5",
+            "origins": [],
+            "tool": "external.read",
+            "values": {},
+            "revoked": false
+          },
+          {
+            "fingerprint": "89154e61bef2f8195da3f9740e32672a409e365685bcddfcb3197d90cf09dda2",
+            "origins": [],
+            "tool": "vault.read",
+            "values": {},
+            "revoked": false
+          },
+          {
+            "fingerprint": "0a968e29832c227099c93c2e561578676e00aea8bde7f4880834b5916f8b2a36",
+            "origins": [],
+            "tool": "compute.sum",
+            "values": {},
+            "revoked": false
+          },
+          {
+            "fingerprint": "47071e455275d74409150754355e7e06533d6f8823ce5419a549d43653b2a4df",
+            "origins": [],
+            "tool": "text.encode",
+            "values": {},
+            "revoked": false
+          },
+          {
+            "fingerprint": "5fd29d2c6dc99663d0259c883173f3dfb71bd806550ace8bcea66124e662dfee",
+            "origins": [
+              "https://reports.example.com"
+            ],
+            "tool": "report.publish",
+            "values": {},
+            "revoked": false
+          },
+          {
+            "fingerprint": "f6f3c2bc7031ceafd70742c82c7b5607e4cbce3c0f831051a5f03b5d0b0280b3",
+            "origins": [],
+            "tool": "payment.send",
+            "values": {},
+            "revoked": false
+          }
+        ]
+      },
+      "events": [
+        {
+          "sequence": 34,
+          "at": 1793540207818,
+          "durationMs": 1,
+          "eventId": "9c4e5696-dd05-4609-b25b-b7f1491564d2",
+          "findings": [],
+          "outputBytes": 70,
+          "request": "two",
+          "session": "6569260f-46f1-4245-a520-f3ea9ffbfba2",
+          "status": "completed",
+          "tenant": "demo",
+          "tool": "knowledge.read",
+          "type": "execution.finished",
+          "previous": "5bb1431fdd880a13d164a990011df390877c5b6836aa97e751b90a3627dbfb1d",
+          "signature": "3571bfc4a912544be58e0bbd7135f8660d77483755c4d94574dd541c07add4de"
+        },
+        {
+          "sequence": 33,
+          "at": 1793540207817,
+          "binding": "bbe46615e6cb8c691e73ba3b1a3ca4b86f11ad7ca506268d078a4e81526d0e31",
+          "eventId": "b7f719be-f67b-4542-a630-fd6350523560",
+          "principal": "demo-agent",
+          "request": "two",
+          "ruleIds": [
+            "allow-read-compute"
+          ],
+          "session": "6569260f-46f1-4245-a520-f3ea9ffbfba2",
+          "tenant": "demo",
+          "tool": "knowledge.read",
+          "transformed": false,
+          "type": "execution.started",
+          "previous": "23b658b4bf706854f860b98222d6d04f5190259622bfba834c395e3a2fb6a815",
+          "signature": "5bb1431fdd880a13d164a990011df390877c5b6836aa97e751b90a3627dbfb1d"
+        },
+        {
+          "sequence": 32,
+          "at": 1793540207817,
+          "durationMs": 1,
+          "eventId": "591ed574-d0f8-4d5e-89e0-76059a3044c5",
+          "findings": [],
+          "outputBytes": 70,
+          "request": "one",
+          "session": "6569260f-46f1-4245-a520-f3ea9ffbfba2",
+          "status": "completed",
+          "tenant": "demo",
+          "tool": "knowledge.read",
+          "type": "execution.finished",
+          "previous": "12c9b83a6c90cf203a3b636f450f2c77a20583d81e75a5ad19702bba265c9a15",
+          "signature": "23b658b4bf706854f860b98222d6d04f5190259622bfba834c395e3a2fb6a815"
+        },
+        {
+          "sequence": 31,
+          "at": 1793540207816,
+          "binding": "f4b415acd57ab3b6f0f3ebd16e72d50922afb0bac9b4be6fd8f132e8ebfe3248",
+          "eventId": "dee6e140-12dc-445d-8f68-b008d660665b",
+          "principal": "demo-agent",
+          "request": "one",
+          "ruleIds": [
+            "allow-read-compute"
+          ],
+          "session": "6569260f-46f1-4245-a520-f3ea9ffbfba2",
+          "tenant": "demo",
+          "tool": "knowledge.read",
+          "transformed": false,
+          "type": "execution.started",
+          "previous": "6d62dadc773e5bf9a8388447446867b64aaa57f976ff3c9b192cd48a58effac0",
+          "signature": "12c9b83a6c90cf203a3b636f450f2c77a20583d81e75a5ad19702bba265c9a15"
+        },
+        {
+          "sequence": 30,
+          "at": 1793540207816,
+          "eventId": "a7ee61bc-3b07-48ed-a468-c675ac438c5b",
+          "parent": null,
+          "principal": "demo-agent",
+          "session": "6569260f-46f1-4245-a520-f3ea9ffbfba2",
+          "tenant": "demo",
+          "type": "session.created",
+          "previous": "9fb9db84aaf223858dbe7bd1bfb127a56696167aa7a247370e514c9e2dd40a4f",
+          "signature": "6d62dadc773e5bf9a8388447446867b64aaa57f976ff3c9b192cd48a58effac0"
+        }
+      ]
+    },
+    "9a667787-e04f-4eca-9bb8-2f5f7523cdab": {
+      "session": {
+        "id": "9a667787-e04f-4eca-9bb8-2f5f7523cdab",
+        "principal": "demo-agent",
+        "tenant": "demo",
+        "parentId": null,
+        "created": 1793540207813,
+        "expires": 1793543807813,
+        "status": "active",
+        "labels": [],
+        "usage": {
+          "calls": 2,
+          "cost": 0,
+          "outputBytes": 0,
+          "active": 0
+        },
+        "limits": {
+          "maxCalls": 50,
+          "maxConcurrent": 2,
+          "maxCost": 100,
+          "maxOutputBytes": 262144,
+          "ttlMs": 3600000
+        },
+        "policyHash": "e846670517bb67994ea2fa82ae7da5555cfcddd0e2e00c3c252b310420beeab4",
+        "grants": [
+          {
+            "fingerprint": "f12d29637acab93be061052043c9d0968482b741b12140afbf43e21cfc0381b3",
+            "origins": [],
+            "tool": "knowledge.read",
+            "values": {},
+            "revoked": false
+          },
+          {
+            "fingerprint": "876448256722c766bafb8b386550e40357aa567ad3d56d53c39a1868b34f7cf5",
+            "origins": [],
+            "tool": "external.read",
+            "values": {},
+            "revoked": false
+          },
+          {
+            "fingerprint": "89154e61bef2f8195da3f9740e32672a409e365685bcddfcb3197d90cf09dda2",
+            "origins": [],
+            "tool": "vault.read",
+            "values": {},
+            "revoked": false
+          },
+          {
+            "fingerprint": "0a968e29832c227099c93c2e561578676e00aea8bde7f4880834b5916f8b2a36",
+            "origins": [],
+            "tool": "compute.sum",
+            "values": {},
+            "revoked": false
+          },
+          {
+            "fingerprint": "47071e455275d74409150754355e7e06533d6f8823ce5419a549d43653b2a4df",
+            "origins": [],
+            "tool": "text.encode",
+            "values": {},
+            "revoked": false
+          },
+          {
+            "fingerprint": "5fd29d2c6dc99663d0259c883173f3dfb71bd806550ace8bcea66124e662dfee",
+            "origins": [
+              "https://reports.example.com"
+            ],
+            "tool": "report.publish",
+            "values": {},
+            "revoked": false
+          },
+          {
+            "fingerprint": "f6f3c2bc7031ceafd70742c82c7b5607e4cbce3c0f831051a5f03b5d0b0280b3",
+            "origins": [],
+            "tool": "payment.send",
+            "values": {},
+            "revoked": false
+          }
+        ]
+      },
+      "events": [
+        {
+          "sequence": 29,
+          "at": 1793540207815,
+          "code": "POLICY_DENIED",
+          "eventId": "51e60b4c-a4dd-4a00-bd19-212bb3a7d0df",
+          "principal": "demo-agent",
+          "request": "excessive",
+          "session": "9a667787-e04f-4eca-9bb8-2f5f7523cdab",
+          "tenant": "demo",
+          "tool": "payment.send",
+          "type": "execution.denied",
+          "previous": "206ed59a8ee873bf74b571e2d64ec0c4bfe0ec5978f1d680d010eea4086eea96",
+          "signature": "9fb9db84aaf223858dbe7bd1bfb127a56696167aa7a247370e514c9e2dd40a4f"
+        },
+        {
+          "sequence": 28,
+          "at": 1793540207814,
+          "binding": "c165a7cfca3865298a0ea6de555d1f9c15c512019dc62493c903fefef00ffaa0",
+          "eventId": "39c35cbb-66e0-4f6b-9e2a-eb787c7717d2",
+          "request": "payment",
+          "ruleIds": [
+            "review-payment"
+          ],
+          "session": "9a667787-e04f-4eca-9bb8-2f5f7523cdab",
+          "tenant": "demo",
+          "tool": "payment.send",
+          "type": "approval.required",
+          "previous": "47a71c9464e21968a8326142f1e6a9fb8e25456355ab65cae937b90e7f3cbc92",
+          "signature": "206ed59a8ee873bf74b571e2d64ec0c4bfe0ec5978f1d680d010eea4086eea96"
+        },
+        {
+          "sequence": 27,
+          "at": 1793540207814,
+          "eventId": "276b74f2-8d73-4135-af6a-7e430d79c152",
+          "parent": null,
+          "principal": "demo-agent",
+          "session": "9a667787-e04f-4eca-9bb8-2f5f7523cdab",
+          "tenant": "demo",
+          "type": "session.created",
+          "previous": "3ecc9245ba1863926300d470c2bc72526e20c0ff5ef0d24149413582d6eb29f0",
+          "signature": "47a71c9464e21968a8326142f1e6a9fb8e25456355ab65cae937b90e7f3cbc92"
+        }
+      ]
+    },
+    "5b149a13-411a-41bb-81db-60acfe262134": {
+      "session": {
+        "id": "5b149a13-411a-41bb-81db-60acfe262134",
+        "principal": "demo-agent",
+        "tenant": "demo",
+        "parentId": null,
+        "created": 1793540207810,
+        "expires": 1793543807810,
+        "status": "active",
+        "labels": [
+          "untrusted"
+        ],
+        "usage": {
+          "calls": 2,
+          "cost": 1,
+          "outputBytes": 81,
+          "active": 0
+        },
+        "limits": {
+          "maxCalls": 50,
+          "maxConcurrent": 2,
+          "maxCost": 100,
+          "maxOutputBytes": 262144,
+          "ttlMs": 3600000
+        },
+        "policyHash": "e846670517bb67994ea2fa82ae7da5555cfcddd0e2e00c3c252b310420beeab4",
+        "grants": [
+          {
+            "fingerprint": "f12d29637acab93be061052043c9d0968482b741b12140afbf43e21cfc0381b3",
+            "origins": [],
+            "tool": "knowledge.read",
+            "values": {},
+            "revoked": false
+          },
+          {
+            "fingerprint": "876448256722c766bafb8b386550e40357aa567ad3d56d53c39a1868b34f7cf5",
+            "origins": [],
+            "tool": "external.read",
+            "values": {},
+            "revoked": false
+          },
+          {
+            "fingerprint": "89154e61bef2f8195da3f9740e32672a409e365685bcddfcb3197d90cf09dda2",
+            "origins": [],
+            "tool": "vault.read",
+            "values": {},
+            "revoked": false
+          },
+          {
+            "fingerprint": "0a968e29832c227099c93c2e561578676e00aea8bde7f4880834b5916f8b2a36",
+            "origins": [],
+            "tool": "compute.sum",
+            "values": {},
+            "revoked": false
+          },
+          {
+            "fingerprint": "47071e455275d74409150754355e7e06533d6f8823ce5419a549d43653b2a4df",
+            "origins": [],
+            "tool": "text.encode",
+            "values": {},
+            "revoked": false
+          },
+          {
+            "fingerprint": "5fd29d2c6dc99663d0259c883173f3dfb71bd806550ace8bcea66124e662dfee",
+            "origins": [
+              "https://reports.example.com"
+            ],
+            "tool": "report.publish",
+            "values": {},
+            "revoked": false
+          },
+          {
+            "fingerprint": "f6f3c2bc7031ceafd70742c82c7b5607e4cbce3c0f831051a5f03b5d0b0280b3",
+            "origins": [],
+            "tool": "payment.send",
+            "values": {},
+            "revoked": false
+          }
+        ]
+      },
+      "events": [
+        {
+          "sequence": 26,
+          "at": 1793540207813,
+          "code": "UNTRUSTED_EGRESS_DENIED",
+          "eventId": "9a98b279-3ea5-4ace-9707-607cec11f4b4",
+          "principal": "demo-agent",
+          "request": "publish",
+          "session": "5b149a13-411a-41bb-81db-60acfe262134",
+          "tenant": "demo",
+          "tool": "report.publish",
+          "type": "execution.denied",
+          "previous": "2e0c248178cae643f2e33cfd483038c88bc3a01b19fe36ae0054716a6cede296",
+          "signature": "3ecc9245ba1863926300d470c2bc72526e20c0ff5ef0d24149413582d6eb29f0"
+        },
+        {
+          "sequence": 25,
+          "at": 1793540207813,
+          "durationMs": 2,
+          "eventId": "bb3bb089-73ef-4008-8d48-9af05b148311",
+          "findings": [
+            "PROMPT_INJECTION_SIGNAL"
+          ],
+          "outputBytes": 81,
+          "request": "external",
+          "session": "5b149a13-411a-41bb-81db-60acfe262134",
+          "status": "completed",
+          "tenant": "demo",
+          "tool": "external.read",
+          "type": "execution.finished",
+          "previous": "27c35707d13cf229f15dcaa007c837f193c0c1a8141a174c685afb2e1dd4b17d",
+          "signature": "2e0c248178cae643f2e33cfd483038c88bc3a01b19fe36ae0054716a6cede296"
+        },
+        {
+          "sequence": 24,
+          "at": 1793540207812,
+          "binding": "135eba9fd0f5bf08d43517aceedd12bc5145464995bbef3df0f9317ba089f924",
+          "eventId": "cfb54fd4-079a-453b-b8ba-18262fbe5ee5",
+          "principal": "demo-agent",
+          "request": "external",
+          "ruleIds": [
+            "allow-read-compute"
+          ],
+          "session": "5b149a13-411a-41bb-81db-60acfe262134",
+          "tenant": "demo",
+          "tool": "external.read",
+          "transformed": false,
+          "type": "execution.started",
+          "previous": "c2ead68fc7ff47844f8a4c973c39e69b47469e9e675f928ddd68854d4e8768f1",
+          "signature": "27c35707d13cf229f15dcaa007c837f193c0c1a8141a174c685afb2e1dd4b17d"
+        },
+        {
+          "sequence": 23,
+          "at": 1793540207811,
+          "eventId": "70510674-34c6-487e-ae11-1ada5b898647",
+          "parent": null,
+          "principal": "demo-agent",
+          "session": "5b149a13-411a-41bb-81db-60acfe262134",
+          "tenant": "demo",
+          "type": "session.created",
+          "previous": "dad460bace0a995648618345fb7810631f575c7fe97123b9b57045b0c3ac7cce",
+          "signature": "c2ead68fc7ff47844f8a4c973c39e69b47469e9e675f928ddd68854d4e8768f1"
+        }
+      ]
+    },
+    "8cf8089b-c30b-4c9d-93ac-0f26b28d43d8": {
+      "session": {
+        "id": "8cf8089b-c30b-4c9d-93ac-0f26b28d43d8",
+        "principal": "demo-agent",
+        "tenant": "demo",
+        "parentId": null,
+        "created": 1793540207806,
+        "expires": 1793543807806,
+        "status": "active",
+        "labels": [
+          "sensitive"
+        ],
+        "usage": {
+          "calls": 3,
+          "cost": 2,
+          "outputBytes": 116,
+          "active": 0
+        },
+        "limits": {
+          "maxCalls": 50,
+          "maxConcurrent": 2,
+          "maxCost": 100,
+          "maxOutputBytes": 262144,
+          "ttlMs": 3600000
+        },
+        "policyHash": "e846670517bb67994ea2fa82ae7da5555cfcddd0e2e00c3c252b310420beeab4",
+        "grants": [
+          {
+            "fingerprint": "f12d29637acab93be061052043c9d0968482b741b12140afbf43e21cfc0381b3",
+            "origins": [],
+            "tool": "knowledge.read",
+            "values": {},
+            "revoked": false
+          },
+          {
+            "fingerprint": "876448256722c766bafb8b386550e40357aa567ad3d56d53c39a1868b34f7cf5",
+            "origins": [],
+            "tool": "external.read",
+            "values": {},
+            "revoked": false
+          },
+          {
+            "fingerprint": "89154e61bef2f8195da3f9740e32672a409e365685bcddfcb3197d90cf09dda2",
+            "origins": [],
+            "tool": "vault.read",
+            "values": {},
+            "revoked": false
+          },
+          {
+            "fingerprint": "0a968e29832c227099c93c2e561578676e00aea8bde7f4880834b5916f8b2a36",
+            "origins": [],
+            "tool": "compute.sum",
+            "values": {},
+            "revoked": false
+          },
+          {
+            "fingerprint": "47071e455275d74409150754355e7e06533d6f8823ce5419a549d43653b2a4df",
+            "origins": [],
+            "tool": "text.encode",
+            "values": {},
+            "revoked": false
+          },
+          {
+            "fingerprint": "5fd29d2c6dc99663d0259c883173f3dfb71bd806550ace8bcea66124e662dfee",
+            "origins": [
+              "https://reports.example.com"
+            ],
+            "tool": "report.publish",
+            "values": {},
+            "revoked": false
+          },
+          {
+            "fingerprint": "f6f3c2bc7031ceafd70742c82c7b5607e4cbce3c0f831051a5f03b5d0b0280b3",
+            "origins": [],
+            "tool": "payment.send",
+            "values": {},
+            "revoked": false
+          }
+        ]
+      },
+      "events": [
+        {
+          "sequence": 22,
+          "at": 1793540207810,
+          "code": "SENSITIVE_EGRESS_DENIED",
+          "eventId": "95ed1c2f-92ec-4d22-835e-1b5b2f982ad0",
+          "principal": "demo-agent",
+          "request": "publish",
+          "session": "8cf8089b-c30b-4c9d-93ac-0f26b28d43d8",
+          "tenant": "demo",
+          "tool": "report.publish",
+          "type": "execution.denied",
+          "previous": "45045abd5074478729f75ebfa96a0d44707072cb3efe473228d11cfe8565031f",
+          "signature": "dad460bace0a995648618345fb7810631f575c7fe97123b9b57045b0c3ac7cce"
+        },
+        {
+          "sequence": 21,
+          "at": 1793540207809,
+          "durationMs": 1,
+          "eventId": "8e72bc05-9a01-439d-80af-3269658d5e28",
+          "findings": [],
+          "outputBytes": 50,
+          "request": "encode",
+          "session": "8cf8089b-c30b-4c9d-93ac-0f26b28d43d8",
+          "status": "completed",
+          "tenant": "demo",
+          "tool": "text.encode",
+          "type": "execution.finished",
+          "previous": "35bedfa04e33b23f3e4642ddadeae8d725b4ec3889445a1e686733217ab542a1",
+          "signature": "45045abd5074478729f75ebfa96a0d44707072cb3efe473228d11cfe8565031f"
+        },
+        {
+          "sequence": 20,
+          "at": 1793540207809,
+          "binding": "66e1255ba6498430763887c97e5830c8679ef3051c406b95b2e672ec10e84a3b",
+          "eventId": "5f50a963-547f-41f5-af6c-1dad14054b78",
+          "principal": "demo-agent",
+          "request": "encode",
+          "ruleIds": [
+            "allow-read-compute"
+          ],
+          "session": "8cf8089b-c30b-4c9d-93ac-0f26b28d43d8",
+          "tenant": "demo",
+          "tool": "text.encode",
+          "transformed": false,
+          "type": "execution.started",
+          "previous": "aa6f91a4d6d3bf22198298fc600552b25e0bf732d694c121eb646cab8fcee38a",
+          "signature": "35bedfa04e33b23f3e4642ddadeae8d725b4ec3889445a1e686733217ab542a1"
+        },
+        {
+          "sequence": 19,
+          "at": 1793540207808,
+          "durationMs": 2,
+          "eventId": "67a87ff2-3637-4896-a41e-797d87b38870",
+          "findings": [],
+          "outputBytes": 66,
+          "request": "invoice",
+          "session": "8cf8089b-c30b-4c9d-93ac-0f26b28d43d8",
+          "status": "completed",
+          "tenant": "demo",
+          "tool": "vault.read",
+          "type": "execution.finished",
+          "previous": "814b3acf94cc98b0186f19b70652a1114196ac9962c315df7625c1fe58e58683",
+          "signature": "aa6f91a4d6d3bf22198298fc600552b25e0bf732d694c121eb646cab8fcee38a"
+        },
+        {
+          "sequence": 18,
+          "at": 1793540207808,
+          "binding": "2c1cda031ea97d485287a96f0943ceb3340d33905d043d0f67b56ce74895a1e9",
+          "eventId": "144fc4ad-ae1c-47c0-90d8-b32d78c5b512",
+          "principal": "demo-agent",
+          "request": "invoice",
+          "ruleIds": [
+            "allow-read-compute"
+          ],
+          "session": "8cf8089b-c30b-4c9d-93ac-0f26b28d43d8",
+          "tenant": "demo",
+          "tool": "vault.read",
+          "transformed": false,
+          "type": "execution.started",
+          "previous": "09fb3785d3ff47b14528ed698eba190fc9485f7b3bebafe0e515ce2d4f9ba9bd",
+          "signature": "814b3acf94cc98b0186f19b70652a1114196ac9962c315df7625c1fe58e58683"
+        },
+        {
+          "sequence": 17,
+          "at": 1793540207806,
+          "eventId": "8e3f1e38-6994-4280-8025-44643b139277",
+          "parent": null,
+          "principal": "demo-agent",
+          "session": "8cf8089b-c30b-4c9d-93ac-0f26b28d43d8",
+          "tenant": "demo",
+          "type": "session.created",
+          "previous": "57f3369eebb522a625bfdb755032d9a362aac8f3cc58aa9767a59d3b7ad639ec",
+          "signature": "09fb3785d3ff47b14528ed698eba190fc9485f7b3bebafe0e515ce2d4f9ba9bd"
+        }
+      ]
+    },
+    "d64a9eeb-ce65-4c48-abcc-06d526ffdff6": {
+      "session": {
+        "id": "d64a9eeb-ce65-4c48-abcc-06d526ffdff6",
+        "principal": "demo-agent",
+        "tenant": "demo",
+        "parentId": null,
+        "created": 1793540207700,
+        "expires": 1793543807700,
+        "status": "active",
+        "labels": [],
+        "usage": {
+          "calls": 8,
+          "cost": 7,
+          "outputBytes": 431,
+          "active": 0
+        },
+        "limits": {
+          "maxCalls": 50,
+          "maxConcurrent": 2,
+          "maxCost": 100,
+          "maxOutputBytes": 262144,
+          "ttlMs": 3600000
+        },
+        "policyHash": "e846670517bb67994ea2fa82ae7da5555cfcddd0e2e00c3c252b310420beeab4",
+        "grants": [
+          {
+            "fingerprint": "f12d29637acab93be061052043c9d0968482b741b12140afbf43e21cfc0381b3",
+            "origins": [],
+            "tool": "knowledge.read",
+            "values": {},
+            "revoked": false
+          },
+          {
+            "fingerprint": "876448256722c766bafb8b386550e40357aa567ad3d56d53c39a1868b34f7cf5",
+            "origins": [],
+            "tool": "external.read",
+            "values": {},
+            "revoked": false
+          },
+          {
+            "fingerprint": "89154e61bef2f8195da3f9740e32672a409e365685bcddfcb3197d90cf09dda2",
+            "origins": [],
+            "tool": "vault.read",
+            "values": {},
+            "revoked": false
+          },
+          {
+            "fingerprint": "0a968e29832c227099c93c2e561578676e00aea8bde7f4880834b5916f8b2a36",
+            "origins": [],
+            "tool": "compute.sum",
+            "values": {},
+            "revoked": false
+          },
+          {
+            "fingerprint": "47071e455275d74409150754355e7e06533d6f8823ce5419a549d43653b2a4df",
+            "origins": [],
+            "tool": "text.encode",
+            "values": {},
+            "revoked": false
+          },
+          {
+            "fingerprint": "5fd29d2c6dc99663d0259c883173f3dfb71bd806550ace8bcea66124e662dfee",
+            "origins": [
+              "https://reports.example.com"
+            ],
+            "tool": "report.publish",
+            "values": {},
+            "revoked": false
+          },
+          {
+            "fingerprint": "f6f3c2bc7031ceafd70742c82c7b5607e4cbce3c0f831051a5f03b5d0b0280b3",
+            "origins": [],
+            "tool": "payment.send",
+            "values": {},
+            "revoked": false
+          }
+        ]
+      },
+      "events": [
+        {
+          "sequence": 16,
+          "at": 1793540207806,
+          "binding": "15e68a380eab52d7e5682d6bb1d39da1a0a92abf29a708086c19c99bed1818dc",
+          "eventId": "5b7700ff-071f-4945-8538-e26d374a5a87",
+          "request": "publish",
+          "ruleIds": [
+            "allow-report",
+            "redact-report-body",
+            "review-publishing"
+          ],
+          "session": "d64a9eeb-ce65-4c48-abcc-06d526ffdff6",
+          "tenant": "demo",
+          "tool": "report.publish",
+          "type": "approval.required",
+          "previous": "5f02c6441e230ce50f093a781ecd61584322c75dcecc92b21722e8bdbd15f81b",
+          "signature": "57f3369eebb522a625bfdb755032d9a362aac8f3cc58aa9767a59d3b7ad639ec"
+        },
+        {
+          "sequence": 15,
+          "at": 1793540207804,
+          "durationMs": 92,
+          "eventId": "2a9236e3-40e9-43fa-8eaa-98ab74797f1b",
+          "findings": [],
+          "outputBytes": 11,
+          "request": "sum",
+          "session": "d64a9eeb-ce65-4c48-abcc-06d526ffdff6",
+          "status": "completed",
+          "tenant": "demo",
+          "tool": "compute.sum",
+          "type": "execution.finished",
+          "previous": "02f7cc087ffd664f1e7d2252b3b88e0a09ce8b87bcac9d47b8a15c7f7fcf1a1d",
+          "signature": "5f02c6441e230ce50f093a781ecd61584322c75dcecc92b21722e8bdbd15f81b"
+        },
+        {
+          "sequence": 14,
+          "at": 1793540207713,
+          "binding": "84cb90f0a8622ff2bc292b21857cddf30cb1813819ef3224332dff26cd54b139",
+          "eventId": "6e100279-e8ba-43b5-8198-5dbe8a01dc9a",
+          "principal": "demo-agent",
+          "request": "sum",
+          "ruleIds": [
+            "allow-read-compute"
+          ],
+          "session": "d64a9eeb-ce65-4c48-abcc-06d526ffdff6",
+          "tenant": "demo",
+          "tool": "compute.sum",
+          "transformed": false,
+          "type": "execution.started",
+          "previous": "a145fd29300eee2cecdf55686bac22d35e1c6718c1a53be720fcd3841cacaa3a",
+          "signature": "02f7cc087ffd664f1e7d2252b3b88e0a09ce8b87bcac9d47b8a15c7f7fcf1a1d"
+        },
+        {
+          "sequence": 13,
+          "at": 1793540207712,
+          "durationMs": 1,
+          "eventId": "af9b7f2c-d69d-4d6f-938d-f4a7b919666c",
+          "findings": [],
+          "outputBytes": 70,
+          "request": "read-5",
+          "session": "d64a9eeb-ce65-4c48-abcc-06d526ffdff6",
+          "status": "completed",
+          "tenant": "demo",
+          "tool": "knowledge.read",
+          "type": "execution.finished",
+          "previous": "d80dd5a29817b06e2be7463199fe37005530812c0395d5b5a2bb776d0aa98da2",
+          "signature": "a145fd29300eee2cecdf55686bac22d35e1c6718c1a53be720fcd3841cacaa3a"
+        },
+        {
+          "sequence": 12,
+          "at": 1793540207711,
+          "binding": "fa5b207dc2663144e9322cd2f2d29b4c46988d3c2b8e053141af0bbf52f985f2",
+          "eventId": "d84c6cb6-32a9-46e8-ad8e-296a41a86a7f",
+          "principal": "demo-agent",
+          "request": "read-5",
+          "ruleIds": [
+            "allow-read-compute"
+          ],
+          "session": "d64a9eeb-ce65-4c48-abcc-06d526ffdff6",
+          "tenant": "demo",
+          "tool": "knowledge.read",
+          "transformed": false,
+          "type": "execution.started",
+          "previous": "8213fc5885bfcbbf6db0481469053576c73fb70ee23c356345ae3593517121cb",
+          "signature": "d80dd5a29817b06e2be7463199fe37005530812c0395d5b5a2bb776d0aa98da2"
+        },
+        {
+          "sequence": 11,
+          "at": 1793540207711,
+          "durationMs": 1,
+          "eventId": "78208ef1-d062-497c-988c-e371cc812026",
+          "findings": [],
+          "outputBytes": 70,
+          "request": "read-4",
+          "session": "d64a9eeb-ce65-4c48-abcc-06d526ffdff6",
+          "status": "completed",
+          "tenant": "demo",
+          "tool": "knowledge.read",
+          "type": "execution.finished",
+          "previous": "2fb29a7d7f9c683314543590603e6ac1ad397fcc21574d964fdf9a23de5ebd1f",
+          "signature": "8213fc5885bfcbbf6db0481469053576c73fb70ee23c356345ae3593517121cb"
+        },
+        {
+          "sequence": 10,
+          "at": 1793540207710,
+          "binding": "d5a4c1e46dd39442bdae1d76e3a7f79b968e30969816e0957f2117b71d0d112e",
+          "eventId": "fd12f3d6-5589-4e22-ba0d-3f1996bf48b6",
+          "principal": "demo-agent",
+          "request": "read-4",
+          "ruleIds": [
+            "allow-read-compute"
+          ],
+          "session": "d64a9eeb-ce65-4c48-abcc-06d526ffdff6",
+          "tenant": "demo",
+          "tool": "knowledge.read",
+          "transformed": false,
+          "type": "execution.started",
+          "previous": "655e0fb63f39e37deda02d5a12853a2759fa14e4afbbe82633d7c991ce2ebe8d",
+          "signature": "2fb29a7d7f9c683314543590603e6ac1ad397fcc21574d964fdf9a23de5ebd1f"
+        },
+        {
+          "sequence": 9,
+          "at": 1793540207710,
+          "durationMs": 1,
+          "eventId": "4c3c2ee7-0da0-4fed-8a42-cdd98b99802b",
+          "findings": [],
+          "outputBytes": 70,
+          "request": "read-3",
+          "session": "d64a9eeb-ce65-4c48-abcc-06d526ffdff6",
+          "status": "completed",
+          "tenant": "demo",
+          "tool": "knowledge.read",
+          "type": "execution.finished",
+          "previous": "115ab7430d167bcb69b451849325931a9bfa57210a59b7ebc9b708bd89f8aa0d",
+          "signature": "655e0fb63f39e37deda02d5a12853a2759fa14e4afbbe82633d7c991ce2ebe8d"
+        },
+        {
+          "sequence": 8,
+          "at": 1793540207709,
+          "binding": "23fc5890d4063066c4f1ca988b84a0f466cc5d1283bdec219dc77b0975653406",
+          "eventId": "bdf57661-f99b-4681-8de1-dc2f96541162",
+          "principal": "demo-agent",
+          "request": "read-3",
+          "ruleIds": [
+            "allow-read-compute"
+          ],
+          "session": "d64a9eeb-ce65-4c48-abcc-06d526ffdff6",
+          "tenant": "demo",
+          "tool": "knowledge.read",
+          "transformed": false,
+          "type": "execution.started",
+          "previous": "bdec148e1cc3a1cfbb9dd2e9c9a9dff0c803b845ba556a786056eac3e8398bd7",
+          "signature": "115ab7430d167bcb69b451849325931a9bfa57210a59b7ebc9b708bd89f8aa0d"
+        },
+        {
+          "sequence": 7,
+          "at": 1793540207708,
+          "durationMs": 1,
+          "eventId": "0c33f9f5-b197-47a0-a0ac-3caea6137237",
+          "findings": [],
+          "outputBytes": 70,
+          "request": "read-2",
+          "session": "d64a9eeb-ce65-4c48-abcc-06d526ffdff6",
+          "status": "completed",
+          "tenant": "demo",
+          "tool": "knowledge.read",
+          "type": "execution.finished",
+          "previous": "62105f70d270e270e6745f2deb95d7fec829cdccef778f837af6ec2cc8990bdf",
+          "signature": "bdec148e1cc3a1cfbb9dd2e9c9a9dff0c803b845ba556a786056eac3e8398bd7"
+        },
+        {
+          "sequence": 6,
+          "at": 1793540207708,
+          "binding": "7d04ef935c9c071e720a703bf6cc886bb50eb17a7a112a06db53ca32e0378d14",
+          "eventId": "0e0a2f1a-140e-4320-8a39-3bddf812b16c",
+          "principal": "demo-agent",
+          "request": "read-2",
+          "ruleIds": [
+            "allow-read-compute"
+          ],
+          "session": "d64a9eeb-ce65-4c48-abcc-06d526ffdff6",
+          "tenant": "demo",
+          "tool": "knowledge.read",
+          "transformed": false,
+          "type": "execution.started",
+          "previous": "e4e23270155cc17adae07565c0bbe5833b5cb5721de75c520b442cb5be4e2612",
+          "signature": "62105f70d270e270e6745f2deb95d7fec829cdccef778f837af6ec2cc8990bdf"
+        },
+        {
+          "sequence": 5,
+          "at": 1793540207707,
+          "durationMs": 1,
+          "eventId": "073142ef-9a49-4b1b-9fb5-06bf316fadc3",
+          "findings": [],
+          "outputBytes": 70,
+          "request": "read-1",
+          "session": "d64a9eeb-ce65-4c48-abcc-06d526ffdff6",
+          "status": "completed",
+          "tenant": "demo",
+          "tool": "knowledge.read",
+          "type": "execution.finished",
+          "previous": "3254cbc6d26ef5534df5b88873bee92730aeb74baa309b0b56bd2a448b74b0dc",
+          "signature": "e4e23270155cc17adae07565c0bbe5833b5cb5721de75c520b442cb5be4e2612"
+        },
+        {
+          "sequence": 4,
+          "at": 1793540207706,
+          "binding": "127deb5a41d4c4bd0ef654fd307d1199cb8c06c4c7f33ad5732c84182da45de6",
+          "eventId": "63d862f3-0456-41b5-9fb2-633d93323682",
+          "principal": "demo-agent",
+          "request": "read-1",
+          "ruleIds": [
+            "allow-read-compute"
+          ],
+          "session": "d64a9eeb-ce65-4c48-abcc-06d526ffdff6",
+          "tenant": "demo",
+          "tool": "knowledge.read",
+          "transformed": false,
+          "type": "execution.started",
+          "previous": "41e9ff2b5fdc63d1749750d38cc6c637448306e02e25cd0ac1f50dec3d19a947",
+          "signature": "3254cbc6d26ef5534df5b88873bee92730aeb74baa309b0b56bd2a448b74b0dc"
+        },
+        {
+          "sequence": 3,
+          "at": 1793540207705,
+          "durationMs": 4,
+          "eventId": "d3cb2e43-f013-417b-ab1c-e12d2b6b3c00",
+          "findings": [],
+          "outputBytes": 70,
+          "request": "read-0",
+          "session": "d64a9eeb-ce65-4c48-abcc-06d526ffdff6",
+          "status": "completed",
+          "tenant": "demo",
+          "tool": "knowledge.read",
+          "type": "execution.finished",
+          "previous": "b60b799dd1010c718065c1785260ae72dd2aa03a514a38694e21965a65fe05b7",
+          "signature": "41e9ff2b5fdc63d1749750d38cc6c637448306e02e25cd0ac1f50dec3d19a947"
+        },
+        {
+          "sequence": 2,
+          "at": 1793540207704,
+          "binding": "a1add639f02d39d1f5342b95800682710ef7f383e85ac67a5c339561ebb8db20",
+          "eventId": "aee5851f-d88e-4399-8b55-e846c745ea5c",
+          "principal": "demo-agent",
+          "request": "read-0",
+          "ruleIds": [
+            "allow-read-compute"
+          ],
+          "session": "d64a9eeb-ce65-4c48-abcc-06d526ffdff6",
+          "tenant": "demo",
+          "tool": "knowledge.read",
+          "transformed": false,
+          "type": "execution.started",
+          "previous": "d8b86e17f530195c08502987f526d7f28fc218f2d09f22da67b539f8639d30e7",
+          "signature": "b60b799dd1010c718065c1785260ae72dd2aa03a514a38694e21965a65fe05b7"
+        },
+        {
+          "sequence": 1,
+          "at": 1793540207701,
+          "eventId": "44e9bdb3-49c8-4b7e-870d-b18a05be5109",
+          "parent": null,
+          "principal": "demo-agent",
+          "session": "d64a9eeb-ce65-4c48-abcc-06d526ffdff6",
+          "tenant": "demo",
+          "type": "session.created",
+          "previous": "genesis",
+          "signature": "d8b86e17f530195c08502987f526d7f28fc218f2d09f22da67b539f8639d30e7"
+        }
+      ]
+    }
+  },
+  "audit": {
+    "items": [
+      {
+        "sequence": 37,
+        "approver": "sample-operator",
+        "at": 1793540207819,
+        "eventId": "534f2e05-48e4-4998-b222-f0aea7ca37e9",
+        "target": "df9d826d-835a-4c43-8778-fb0374039599",
+        "targetType": "session",
+        "tenant": "demo",
+        "type": "capability.revoked",
+        "previous": "c020f664173dd37097d1c69f596669555ca47e8524157af145d3cb468761c469",
+        "signature": "2625b9d5fe92a627d16dbd8a3aad7d40603f9988fa01a5a1e7ef8f19816f6c9b"
+      },
+      {
+        "sequence": 36,
+        "at": 1793540207819,
+        "eventId": "3c3a8266-81ed-42ca-b777-db48a76727e1",
+        "parent": null,
+        "principal": "demo-agent",
+        "session": "df9d826d-835a-4c43-8778-fb0374039599",
+        "tenant": "demo",
+        "type": "session.created",
+        "previous": "d372b458a951572301a5ea4b871644ae5b9615141b43e0596a7c9d190a7e0c2a",
+        "signature": "c020f664173dd37097d1c69f596669555ca47e8524157af145d3cb468761c469"
+      },
+      {
+        "sequence": 35,
+        "at": 1793540207818,
+        "code": "CALL_BUDGET_EXCEEDED",
+        "eventId": "4d1fe5a0-4a1a-4b51-89aa-a8a2e9d37f4a",
+        "principal": "demo-agent",
+        "tenant": "demo",
+        "type": "request.rejected",
+        "previous": "3571bfc4a912544be58e0bbd7135f8660d77483755c4d94574dd541c07add4de",
+        "signature": "d372b458a951572301a5ea4b871644ae5b9615141b43e0596a7c9d190a7e0c2a"
+      },
+      {
+        "sequence": 34,
+        "at": 1793540207818,
+        "durationMs": 1,
+        "eventId": "9c4e5696-dd05-4609-b25b-b7f1491564d2",
+        "findings": [],
+        "outputBytes": 70,
+        "request": "two",
+        "session": "6569260f-46f1-4245-a520-f3ea9ffbfba2",
+        "status": "completed",
+        "tenant": "demo",
+        "tool": "knowledge.read",
+        "type": "execution.finished",
+        "previous": "5bb1431fdd880a13d164a990011df390877c5b6836aa97e751b90a3627dbfb1d",
+        "signature": "3571bfc4a912544be58e0bbd7135f8660d77483755c4d94574dd541c07add4de"
+      },
+      {
+        "sequence": 33,
+        "at": 1793540207817,
+        "binding": "bbe46615e6cb8c691e73ba3b1a3ca4b86f11ad7ca506268d078a4e81526d0e31",
+        "eventId": "b7f719be-f67b-4542-a630-fd6350523560",
+        "principal": "demo-agent",
+        "request": "two",
+        "ruleIds": [
+          "allow-read-compute"
+        ],
+        "session": "6569260f-46f1-4245-a520-f3ea9ffbfba2",
+        "tenant": "demo",
+        "tool": "knowledge.read",
+        "transformed": false,
+        "type": "execution.started",
+        "previous": "23b658b4bf706854f860b98222d6d04f5190259622bfba834c395e3a2fb6a815",
+        "signature": "5bb1431fdd880a13d164a990011df390877c5b6836aa97e751b90a3627dbfb1d"
+      },
+      {
+        "sequence": 32,
+        "at": 1793540207817,
+        "durationMs": 1,
+        "eventId": "591ed574-d0f8-4d5e-89e0-76059a3044c5",
+        "findings": [],
+        "outputBytes": 70,
+        "request": "one",
+        "session": "6569260f-46f1-4245-a520-f3ea9ffbfba2",
+        "status": "completed",
+        "tenant": "demo",
+        "tool": "knowledge.read",
+        "type": "execution.finished",
+        "previous": "12c9b83a6c90cf203a3b636f450f2c77a20583d81e75a5ad19702bba265c9a15",
+        "signature": "23b658b4bf706854f860b98222d6d04f5190259622bfba834c395e3a2fb6a815"
+      },
+      {
+        "sequence": 31,
+        "at": 1793540207816,
+        "binding": "f4b415acd57ab3b6f0f3ebd16e72d50922afb0bac9b4be6fd8f132e8ebfe3248",
+        "eventId": "dee6e140-12dc-445d-8f68-b008d660665b",
+        "principal": "demo-agent",
+        "request": "one",
+        "ruleIds": [
+          "allow-read-compute"
+        ],
+        "session": "6569260f-46f1-4245-a520-f3ea9ffbfba2",
+        "tenant": "demo",
+        "tool": "knowledge.read",
+        "transformed": false,
+        "type": "execution.started",
+        "previous": "6d62dadc773e5bf9a8388447446867b64aaa57f976ff3c9b192cd48a58effac0",
+        "signature": "12c9b83a6c90cf203a3b636f450f2c77a20583d81e75a5ad19702bba265c9a15"
+      },
+      {
+        "sequence": 30,
+        "at": 1793540207816,
+        "eventId": "a7ee61bc-3b07-48ed-a468-c675ac438c5b",
+        "parent": null,
+        "principal": "demo-agent",
+        "session": "6569260f-46f1-4245-a520-f3ea9ffbfba2",
+        "tenant": "demo",
+        "type": "session.created",
+        "previous": "9fb9db84aaf223858dbe7bd1bfb127a56696167aa7a247370e514c9e2dd40a4f",
+        "signature": "6d62dadc773e5bf9a8388447446867b64aaa57f976ff3c9b192cd48a58effac0"
+      },
+      {
+        "sequence": 29,
+        "at": 1793540207815,
+        "code": "POLICY_DENIED",
+        "eventId": "51e60b4c-a4dd-4a00-bd19-212bb3a7d0df",
+        "principal": "demo-agent",
+        "request": "excessive",
+        "session": "9a667787-e04f-4eca-9bb8-2f5f7523cdab",
+        "tenant": "demo",
+        "tool": "payment.send",
+        "type": "execution.denied",
+        "previous": "206ed59a8ee873bf74b571e2d64ec0c4bfe0ec5978f1d680d010eea4086eea96",
+        "signature": "9fb9db84aaf223858dbe7bd1bfb127a56696167aa7a247370e514c9e2dd40a4f"
+      },
+      {
+        "sequence": 28,
+        "at": 1793540207814,
+        "binding": "c165a7cfca3865298a0ea6de555d1f9c15c512019dc62493c903fefef00ffaa0",
+        "eventId": "39c35cbb-66e0-4f6b-9e2a-eb787c7717d2",
+        "request": "payment",
+        "ruleIds": [
+          "review-payment"
+        ],
+        "session": "9a667787-e04f-4eca-9bb8-2f5f7523cdab",
+        "tenant": "demo",
+        "tool": "payment.send",
+        "type": "approval.required",
+        "previous": "47a71c9464e21968a8326142f1e6a9fb8e25456355ab65cae937b90e7f3cbc92",
+        "signature": "206ed59a8ee873bf74b571e2d64ec0c4bfe0ec5978f1d680d010eea4086eea96"
+      },
+      {
+        "sequence": 27,
+        "at": 1793540207814,
+        "eventId": "276b74f2-8d73-4135-af6a-7e430d79c152",
+        "parent": null,
+        "principal": "demo-agent",
+        "session": "9a667787-e04f-4eca-9bb8-2f5f7523cdab",
+        "tenant": "demo",
+        "type": "session.created",
+        "previous": "3ecc9245ba1863926300d470c2bc72526e20c0ff5ef0d24149413582d6eb29f0",
+        "signature": "47a71c9464e21968a8326142f1e6a9fb8e25456355ab65cae937b90e7f3cbc92"
+      },
+      {
+        "sequence": 26,
+        "at": 1793540207813,
+        "code": "UNTRUSTED_EGRESS_DENIED",
+        "eventId": "9a98b279-3ea5-4ace-9707-607cec11f4b4",
+        "principal": "demo-agent",
+        "request": "publish",
+        "session": "5b149a13-411a-41bb-81db-60acfe262134",
+        "tenant": "demo",
+        "tool": "report.publish",
+        "type": "execution.denied",
+        "previous": "2e0c248178cae643f2e33cfd483038c88bc3a01b19fe36ae0054716a6cede296",
+        "signature": "3ecc9245ba1863926300d470c2bc72526e20c0ff5ef0d24149413582d6eb29f0"
+      },
+      {
+        "sequence": 25,
+        "at": 1793540207813,
+        "durationMs": 2,
+        "eventId": "bb3bb089-73ef-4008-8d48-9af05b148311",
+        "findings": [
+          "PROMPT_INJECTION_SIGNAL"
+        ],
+        "outputBytes": 81,
+        "request": "external",
+        "session": "5b149a13-411a-41bb-81db-60acfe262134",
+        "status": "completed",
+        "tenant": "demo",
+        "tool": "external.read",
+        "type": "execution.finished",
+        "previous": "27c35707d13cf229f15dcaa007c837f193c0c1a8141a174c685afb2e1dd4b17d",
+        "signature": "2e0c248178cae643f2e33cfd483038c88bc3a01b19fe36ae0054716a6cede296"
+      },
+      {
+        "sequence": 24,
+        "at": 1793540207812,
+        "binding": "135eba9fd0f5bf08d43517aceedd12bc5145464995bbef3df0f9317ba089f924",
+        "eventId": "cfb54fd4-079a-453b-b8ba-18262fbe5ee5",
+        "principal": "demo-agent",
+        "request": "external",
+        "ruleIds": [
+          "allow-read-compute"
+        ],
+        "session": "5b149a13-411a-41bb-81db-60acfe262134",
+        "tenant": "demo",
+        "tool": "external.read",
+        "transformed": false,
+        "type": "execution.started",
+        "previous": "c2ead68fc7ff47844f8a4c973c39e69b47469e9e675f928ddd68854d4e8768f1",
+        "signature": "27c35707d13cf229f15dcaa007c837f193c0c1a8141a174c685afb2e1dd4b17d"
+      },
+      {
+        "sequence": 23,
+        "at": 1793540207811,
+        "eventId": "70510674-34c6-487e-ae11-1ada5b898647",
+        "parent": null,
+        "principal": "demo-agent",
+        "session": "5b149a13-411a-41bb-81db-60acfe262134",
+        "tenant": "demo",
+        "type": "session.created",
+        "previous": "dad460bace0a995648618345fb7810631f575c7fe97123b9b57045b0c3ac7cce",
+        "signature": "c2ead68fc7ff47844f8a4c973c39e69b47469e9e675f928ddd68854d4e8768f1"
+      },
+      {
+        "sequence": 22,
+        "at": 1793540207810,
+        "code": "SENSITIVE_EGRESS_DENIED",
+        "eventId": "95ed1c2f-92ec-4d22-835e-1b5b2f982ad0",
+        "principal": "demo-agent",
+        "request": "publish",
+        "session": "8cf8089b-c30b-4c9d-93ac-0f26b28d43d8",
+        "tenant": "demo",
+        "tool": "report.publish",
+        "type": "execution.denied",
+        "previous": "45045abd5074478729f75ebfa96a0d44707072cb3efe473228d11cfe8565031f",
+        "signature": "dad460bace0a995648618345fb7810631f575c7fe97123b9b57045b0c3ac7cce"
+      },
+      {
+        "sequence": 21,
+        "at": 1793540207809,
+        "durationMs": 1,
+        "eventId": "8e72bc05-9a01-439d-80af-3269658d5e28",
+        "findings": [],
+        "outputBytes": 50,
+        "request": "encode",
+        "session": "8cf8089b-c30b-4c9d-93ac-0f26b28d43d8",
+        "status": "completed",
+        "tenant": "demo",
+        "tool": "text.encode",
+        "type": "execution.finished",
+        "previous": "35bedfa04e33b23f3e4642ddadeae8d725b4ec3889445a1e686733217ab542a1",
+        "signature": "45045abd5074478729f75ebfa96a0d44707072cb3efe473228d11cfe8565031f"
+      },
+      {
+        "sequence": 20,
+        "at": 1793540207809,
+        "binding": "66e1255ba6498430763887c97e5830c8679ef3051c406b95b2e672ec10e84a3b",
+        "eventId": "5f50a963-547f-41f5-af6c-1dad14054b78",
+        "principal": "demo-agent",
+        "request": "encode",
+        "ruleIds": [
+          "allow-read-compute"
+        ],
+        "session": "8cf8089b-c30b-4c9d-93ac-0f26b28d43d8",
+        "tenant": "demo",
+        "tool": "text.encode",
+        "transformed": false,
+        "type": "execution.started",
+        "previous": "aa6f91a4d6d3bf22198298fc600552b25e0bf732d694c121eb646cab8fcee38a",
+        "signature": "35bedfa04e33b23f3e4642ddadeae8d725b4ec3889445a1e686733217ab542a1"
+      },
+      {
+        "sequence": 19,
+        "at": 1793540207808,
+        "durationMs": 2,
+        "eventId": "67a87ff2-3637-4896-a41e-797d87b38870",
+        "findings": [],
+        "outputBytes": 66,
+        "request": "invoice",
+        "session": "8cf8089b-c30b-4c9d-93ac-0f26b28d43d8",
+        "status": "completed",
+        "tenant": "demo",
+        "tool": "vault.read",
+        "type": "execution.finished",
+        "previous": "814b3acf94cc98b0186f19b70652a1114196ac9962c315df7625c1fe58e58683",
+        "signature": "aa6f91a4d6d3bf22198298fc600552b25e0bf732d694c121eb646cab8fcee38a"
+      },
+      {
+        "sequence": 18,
+        "at": 1793540207808,
+        "binding": "2c1cda031ea97d485287a96f0943ceb3340d33905d043d0f67b56ce74895a1e9",
+        "eventId": "144fc4ad-ae1c-47c0-90d8-b32d78c5b512",
+        "principal": "demo-agent",
+        "request": "invoice",
+        "ruleIds": [
+          "allow-read-compute"
+        ],
+        "session": "8cf8089b-c30b-4c9d-93ac-0f26b28d43d8",
+        "tenant": "demo",
+        "tool": "vault.read",
+        "transformed": false,
+        "type": "execution.started",
+        "previous": "09fb3785d3ff47b14528ed698eba190fc9485f7b3bebafe0e515ce2d4f9ba9bd",
+        "signature": "814b3acf94cc98b0186f19b70652a1114196ac9962c315df7625c1fe58e58683"
+      },
+      {
+        "sequence": 17,
+        "at": 1793540207806,
+        "eventId": "8e3f1e38-6994-4280-8025-44643b139277",
+        "parent": null,
+        "principal": "demo-agent",
+        "session": "8cf8089b-c30b-4c9d-93ac-0f26b28d43d8",
+        "tenant": "demo",
+        "type": "session.created",
+        "previous": "57f3369eebb522a625bfdb755032d9a362aac8f3cc58aa9767a59d3b7ad639ec",
+        "signature": "09fb3785d3ff47b14528ed698eba190fc9485f7b3bebafe0e515ce2d4f9ba9bd"
+      },
+      {
+        "sequence": 16,
+        "at": 1793540207806,
+        "binding": "15e68a380eab52d7e5682d6bb1d39da1a0a92abf29a708086c19c99bed1818dc",
+        "eventId": "5b7700ff-071f-4945-8538-e26d374a5a87",
+        "request": "publish",
+        "ruleIds": [
+          "allow-report",
+          "redact-report-body",
+          "review-publishing"
+        ],
+        "session": "d64a9eeb-ce65-4c48-abcc-06d526ffdff6",
+        "tenant": "demo",
+        "tool": "report.publish",
+        "type": "approval.required",
+        "previous": "5f02c6441e230ce50f093a781ecd61584322c75dcecc92b21722e8bdbd15f81b",
+        "signature": "57f3369eebb522a625bfdb755032d9a362aac8f3cc58aa9767a59d3b7ad639ec"
+      },
+      {
+        "sequence": 15,
+        "at": 1793540207804,
+        "durationMs": 92,
+        "eventId": "2a9236e3-40e9-43fa-8eaa-98ab74797f1b",
+        "findings": [],
+        "outputBytes": 11,
+        "request": "sum",
+        "session": "d64a9eeb-ce65-4c48-abcc-06d526ffdff6",
+        "status": "completed",
+        "tenant": "demo",
+        "tool": "compute.sum",
+        "type": "execution.finished",
+        "previous": "02f7cc087ffd664f1e7d2252b3b88e0a09ce8b87bcac9d47b8a15c7f7fcf1a1d",
+        "signature": "5f02c6441e230ce50f093a781ecd61584322c75dcecc92b21722e8bdbd15f81b"
+      },
+      {
+        "sequence": 14,
+        "at": 1793540207713,
+        "binding": "84cb90f0a8622ff2bc292b21857cddf30cb1813819ef3224332dff26cd54b139",
+        "eventId": "6e100279-e8ba-43b5-8198-5dbe8a01dc9a",
+        "principal": "demo-agent",
+        "request": "sum",
+        "ruleIds": [
+          "allow-read-compute"
+        ],
+        "session": "d64a9eeb-ce65-4c48-abcc-06d526ffdff6",
+        "tenant": "demo",
+        "tool": "compute.sum",
+        "transformed": false,
+        "type": "execution.started",
+        "previous": "a145fd29300eee2cecdf55686bac22d35e1c6718c1a53be720fcd3841cacaa3a",
+        "signature": "02f7cc087ffd664f1e7d2252b3b88e0a09ce8b87bcac9d47b8a15c7f7fcf1a1d"
+      },
+      {
+        "sequence": 13,
+        "at": 1793540207712,
+        "durationMs": 1,
+        "eventId": "af9b7f2c-d69d-4d6f-938d-f4a7b919666c",
+        "findings": [],
+        "outputBytes": 70,
+        "request": "read-5",
+        "session": "d64a9eeb-ce65-4c48-abcc-06d526ffdff6",
+        "status": "completed",
+        "tenant": "demo",
+        "tool": "knowledge.read",
+        "type": "execution.finished",
+        "previous": "d80dd5a29817b06e2be7463199fe37005530812c0395d5b5a2bb776d0aa98da2",
+        "signature": "a145fd29300eee2cecdf55686bac22d35e1c6718c1a53be720fcd3841cacaa3a"
+      },
+      {
+        "sequence": 12,
+        "at": 1793540207711,
+        "binding": "fa5b207dc2663144e9322cd2f2d29b4c46988d3c2b8e053141af0bbf52f985f2",
+        "eventId": "d84c6cb6-32a9-46e8-ad8e-296a41a86a7f",
+        "principal": "demo-agent",
+        "request": "read-5",
+        "ruleIds": [
+          "allow-read-compute"
+        ],
+        "session": "d64a9eeb-ce65-4c48-abcc-06d526ffdff6",
+        "tenant": "demo",
+        "tool": "knowledge.read",
+        "transformed": false,
+        "type": "execution.started",
+        "previous": "8213fc5885bfcbbf6db0481469053576c73fb70ee23c356345ae3593517121cb",
+        "signature": "d80dd5a29817b06e2be7463199fe37005530812c0395d5b5a2bb776d0aa98da2"
+      },
+      {
+        "sequence": 11,
+        "at": 1793540207711,
+        "durationMs": 1,
+        "eventId": "78208ef1-d062-497c-988c-e371cc812026",
+        "findings": [],
+        "outputBytes": 70,
+        "request": "read-4",
+        "session": "d64a9eeb-ce65-4c48-abcc-06d526ffdff6",
+        "status": "completed",
+        "tenant": "demo",
+        "tool": "knowledge.read",
+        "type": "execution.finished",
+        "previous": "2fb29a7d7f9c683314543590603e6ac1ad397fcc21574d964fdf9a23de5ebd1f",
+        "signature": "8213fc5885bfcbbf6db0481469053576c73fb70ee23c356345ae3593517121cb"
+      },
+      {
+        "sequence": 10,
+        "at": 1793540207710,
+        "binding": "d5a4c1e46dd39442bdae1d76e3a7f79b968e30969816e0957f2117b71d0d112e",
+        "eventId": "fd12f3d6-5589-4e22-ba0d-3f1996bf48b6",
+        "principal": "demo-agent",
+        "request": "read-4",
+        "ruleIds": [
+          "allow-read-compute"
+        ],
+        "session": "d64a9eeb-ce65-4c48-abcc-06d526ffdff6",
+        "tenant": "demo",
+        "tool": "knowledge.read",
+        "transformed": false,
+        "type": "execution.started",
+        "previous": "655e0fb63f39e37deda02d5a12853a2759fa14e4afbbe82633d7c991ce2ebe8d",
+        "signature": "2fb29a7d7f9c683314543590603e6ac1ad397fcc21574d964fdf9a23de5ebd1f"
+      },
+      {
+        "sequence": 9,
+        "at": 1793540207710,
+        "durationMs": 1,
+        "eventId": "4c3c2ee7-0da0-4fed-8a42-cdd98b99802b",
+        "findings": [],
+        "outputBytes": 70,
+        "request": "read-3",
+        "session": "d64a9eeb-ce65-4c48-abcc-06d526ffdff6",
+        "status": "completed",
+        "tenant": "demo",
+        "tool": "knowledge.read",
+        "type": "execution.finished",
+        "previous": "115ab7430d167bcb69b451849325931a9bfa57210a59b7ebc9b708bd89f8aa0d",
+        "signature": "655e0fb63f39e37deda02d5a12853a2759fa14e4afbbe82633d7c991ce2ebe8d"
+      },
+      {
+        "sequence": 8,
+        "at": 1793540207709,
+        "binding": "23fc5890d4063066c4f1ca988b84a0f466cc5d1283bdec219dc77b0975653406",
+        "eventId": "bdf57661-f99b-4681-8de1-dc2f96541162",
+        "principal": "demo-agent",
+        "request": "read-3",
+        "ruleIds": [
+          "allow-read-compute"
+        ],
+        "session": "d64a9eeb-ce65-4c48-abcc-06d526ffdff6",
+        "tenant": "demo",
+        "tool": "knowledge.read",
+        "transformed": false,
+        "type": "execution.started",
+        "previous": "bdec148e1cc3a1cfbb9dd2e9c9a9dff0c803b845ba556a786056eac3e8398bd7",
+        "signature": "115ab7430d167bcb69b451849325931a9bfa57210a59b7ebc9b708bd89f8aa0d"
+      },
+      {
+        "sequence": 7,
+        "at": 1793540207708,
+        "durationMs": 1,
+        "eventId": "0c33f9f5-b197-47a0-a0ac-3caea6137237",
+        "findings": [],
+        "outputBytes": 70,
+        "request": "read-2",
+        "session": "d64a9eeb-ce65-4c48-abcc-06d526ffdff6",
+        "status": "completed",
+        "tenant": "demo",
+        "tool": "knowledge.read",
+        "type": "execution.finished",
+        "previous": "62105f70d270e270e6745f2deb95d7fec829cdccef778f837af6ec2cc8990bdf",
+        "signature": "bdec148e1cc3a1cfbb9dd2e9c9a9dff0c803b845ba556a786056eac3e8398bd7"
+      },
+      {
+        "sequence": 6,
+        "at": 1793540207708,
+        "binding": "7d04ef935c9c071e720a703bf6cc886bb50eb17a7a112a06db53ca32e0378d14",
+        "eventId": "0e0a2f1a-140e-4320-8a39-3bddf812b16c",
+        "principal": "demo-agent",
+        "request": "read-2",
+        "ruleIds": [
+          "allow-read-compute"
+        ],
+        "session": "d64a9eeb-ce65-4c48-abcc-06d526ffdff6",
+        "tenant": "demo",
+        "tool": "knowledge.read",
+        "transformed": false,
+        "type": "execution.started",
+        "previous": "e4e23270155cc17adae07565c0bbe5833b5cb5721de75c520b442cb5be4e2612",
+        "signature": "62105f70d270e270e6745f2deb95d7fec829cdccef778f837af6ec2cc8990bdf"
+      },
+      {
+        "sequence": 5,
+        "at": 1793540207707,
+        "durationMs": 1,
+        "eventId": "073142ef-9a49-4b1b-9fb5-06bf316fadc3",
+        "findings": [],
+        "outputBytes": 70,
+        "request": "read-1",
+        "session": "d64a9eeb-ce65-4c48-abcc-06d526ffdff6",
+        "status": "completed",
+        "tenant": "demo",
+        "tool": "knowledge.read",
+        "type": "execution.finished",
+        "previous": "3254cbc6d26ef5534df5b88873bee92730aeb74baa309b0b56bd2a448b74b0dc",
+        "signature": "e4e23270155cc17adae07565c0bbe5833b5cb5721de75c520b442cb5be4e2612"
+      },
+      {
+        "sequence": 4,
+        "at": 1793540207706,
+        "binding": "127deb5a41d4c4bd0ef654fd307d1199cb8c06c4c7f33ad5732c84182da45de6",
+        "eventId": "63d862f3-0456-41b5-9fb2-633d93323682",
+        "principal": "demo-agent",
+        "request": "read-1",
+        "ruleIds": [
+          "allow-read-compute"
+        ],
+        "session": "d64a9eeb-ce65-4c48-abcc-06d526ffdff6",
+        "tenant": "demo",
+        "tool": "knowledge.read",
+        "transformed": false,
+        "type": "execution.started",
+        "previous": "41e9ff2b5fdc63d1749750d38cc6c637448306e02e25cd0ac1f50dec3d19a947",
+        "signature": "3254cbc6d26ef5534df5b88873bee92730aeb74baa309b0b56bd2a448b74b0dc"
+      },
+      {
+        "sequence": 3,
+        "at": 1793540207705,
+        "durationMs": 4,
+        "eventId": "d3cb2e43-f013-417b-ab1c-e12d2b6b3c00",
+        "findings": [],
+        "outputBytes": 70,
+        "request": "read-0",
+        "session": "d64a9eeb-ce65-4c48-abcc-06d526ffdff6",
+        "status": "completed",
+        "tenant": "demo",
+        "tool": "knowledge.read",
+        "type": "execution.finished",
+        "previous": "b60b799dd1010c718065c1785260ae72dd2aa03a514a38694e21965a65fe05b7",
+        "signature": "41e9ff2b5fdc63d1749750d38cc6c637448306e02e25cd0ac1f50dec3d19a947"
+      },
+      {
+        "sequence": 2,
+        "at": 1793540207704,
+        "binding": "a1add639f02d39d1f5342b95800682710ef7f383e85ac67a5c339561ebb8db20",
+        "eventId": "aee5851f-d88e-4399-8b55-e846c745ea5c",
+        "principal": "demo-agent",
+        "request": "read-0",
+        "ruleIds": [
+          "allow-read-compute"
+        ],
+        "session": "d64a9eeb-ce65-4c48-abcc-06d526ffdff6",
+        "tenant": "demo",
+        "tool": "knowledge.read",
+        "transformed": false,
+        "type": "execution.started",
+        "previous": "d8b86e17f530195c08502987f526d7f28fc218f2d09f22da67b539f8639d30e7",
+        "signature": "b60b799dd1010c718065c1785260ae72dd2aa03a514a38694e21965a65fe05b7"
+      },
+      {
+        "sequence": 1,
+        "at": 1793540207701,
+        "eventId": "44e9bdb3-49c8-4b7e-870d-b18a05be5109",
+        "parent": null,
+        "principal": "demo-agent",
+        "session": "d64a9eeb-ce65-4c48-abcc-06d526ffdff6",
+        "tenant": "demo",
+        "type": "session.created",
+        "previous": "genesis",
+        "signature": "d8b86e17f530195c08502987f526d7f28fc218f2d09f22da67b539f8639d30e7"
+      }
+    ],
+    "nextCursor": null,
+    "snapshot": 37
+  }
+}

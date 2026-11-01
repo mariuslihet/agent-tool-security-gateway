@@ -1,0 +1,21 @@
+{
+  "name": "agent-tool-security-gateway",
+  "version": "0.2.0",
+  "description": "Deterministic, stateful authorization and execution gateway for AI agent tools",
+  "type": "module",
+  "private": true,
+  "engines": { "node": ">=24.13.0 <25" },
+  "exports": { ".": "./src/index.js", "./client": "./src/client.js" },
+  "scripts": {
+    "test": "node --test --test-concurrency=1",
+    "init": "node src/cli.js init",
+    "start": "node --env-file-if-exists=.env src/cli.js serve",
+    "demo": "node examples/demo.js",
+    "simulate": "node simulations/run.js",
+    "mcp": "node --env-file-if-exists=.env src/cli.js mcp",
+    "check": "node scripts/check.js",
+    "benchmark": "node scripts/benchmark.js",
+    "preview:build": "node scripts/build-preview.js"
+  },
+  "license": "Apache-2.0"
+}

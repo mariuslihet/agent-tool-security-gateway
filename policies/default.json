@@ -1,0 +1,14 @@
+{
+  "version": "baseline-v1",
+  "limits": { "maxArgumentBytes": 32768, "maxOutputBytes": 65536, "approvalTtlMs": 300000 },
+  "rules": [
+    { "id": "block-injection", "tools": ["*"], "effect": "deny", "when": [{ "field": "findings", "op": "contains", "value": "PROMPT_INJECTION_SIGNAL" }] },
+    { "id": "block-encoded-injection", "tools": ["*"], "effect": "deny", "when": [{ "field": "findings", "op": "contains", "value": "ENCODED_INJECTION_SIGNAL" }] },
+    { "id": "allow-read-compute", "tools": ["knowledge.read", "external.read", "vault.read", "compute.sum", "text.encode"], "effect": "allow", "when": [] },
+    { "id": "allow-report", "tools": ["report.publish"], "effect": "allow", "when": [] },
+    { "id": "redact-report-body", "tools": ["report.publish"], "effect": "sanitize", "when": [], "redactFields": ["body"] },
+    { "id": "review-publishing", "tools": ["report.publish"], "effect": "approval", "when": [] },
+    { "id": "review-payment", "tools": ["payment.send"], "effect": "approval", "when": [] },
+    { "id": "block-large-payment", "tools": ["payment.send"], "effect": "deny", "when": [{ "field": "arguments.amountCents", "op": "gte", "value": 100001 }] }
+  ]
+}

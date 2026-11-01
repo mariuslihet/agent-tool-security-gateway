@@ -10,8 +10,6 @@ Built with Node.js 24 and its standard library. No runtime dependencies, hosted 
 
 Six workspaces turn security decisions into an inspectable workflow: **Overview**, **Approvals**, **Sessions**, **Tool Catalog**, **Policy Studio**, and **Audit Explorer**. The console opens with a clearly labeled, isolated sample workspace; it never automatically connects to private data.
 
-![Gateway operator console showing isolated sample data](docs/images/console-overview.jpg)
-
 Version 0.2 adds persistent activity totals, a 24-hour activity chart, tenant-bound cursor pagination, audit filters and JSONL exports, capability and budget inspection, encrypted reviewer notes, read-only viewer access, policy diagnostics and rule explanations, readiness checks, correlation IDs, and a control-plane SDK. See [the console guide](docs/control-plane.md) and [release notes](CHANGELOG.md).
 
 ## Run locally

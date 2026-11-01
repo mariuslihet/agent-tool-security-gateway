@@ -1,4 +1,4 @@
-FROM node:24-bookworm-slim
+FROM node:26-bookworm-slim
 ENV NODE_ENV=production GATEWAY_HOST=0.0.0.0 GATEWAY_PORT=8787 GATEWAY_DB=/app/var/gateway.sqlite
 WORKDIR /app
 COPY --chown=node:node package.json package-lock.json ./

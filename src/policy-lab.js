@@ -45,3 +45,27 @@ export function previewPolicy({ registry, policy, tenant, principal = 'policy-pr
     return result;
   } catch (error) { return { ...result, decision: 'deny', code: error instanceof GatewayError ? error.code : 'INVALID_PREVIEW' }; }
 }
+
+export function runPolicySuite({ registry, policy, tenant, cases }) {
+  cases = bounded(cases, 65536);
+  assert(Array.isArray(cases) && cases.length >= 1 && cases.length <= 50, 'INVALID_SUITE');
+  const ids = new Set();
+  for (const scenario of cases) {
+    assert(scenario && typeof scenario === 'object' && !Array.isArray(scenario)
+      && Object.keys(scenario).every(k => ['id', 'tool', 'arguments', 'labels', 'principal', 'expected'].includes(k))
+      && typeof scenario.id === 'string' && idPattern.test(scenario.id) && !ids.has(scenario.id)
+      && typeof scenario.tool === 'string' && Object.hasOwn(scenario, 'arguments'), 'INVALID_SUITE');
+    ids.add(scenario.id);
+    const expected = scenario.expected;
+    assert(expected && typeof expected === 'object' && !Array.isArray(expected) && Object.keys(expected).every(k => ['decision', 'code'].includes(k))
+      && ['allow', 'deny', 'approval'].includes(expected.decision)
+      && (expected.code === undefined || (typeof expected.code === 'string' && /^[A-Z_]{1,96}$/.test(expected.code))), 'INVALID_SUITE');
+  }
+  const results = cases.map(scenario => {
+    const result = previewPolicy({ registry, policy, tenant, principal: scenario.principal, tool: scenario.tool, arguments: scenario.arguments, labels: scenario.labels });
+    return { id: scenario.id, expected: scenario.expected, actual: { decision: result.decision, code: result.code, transformed: result.transformed, findings: result.findings },
+      passed: result.decision === scenario.expected.decision && (scenario.expected.code === undefined || result.code === scenario.expected.code) };
+  });
+  const passed = results.filter(result => result.passed).length;
+  return { execution: false, scope: 'hypothetical-policy-and-inspection', policyHash: policy.hash, suiteHash: digest(cases), generatedAt: Date.now(), total: results.length, passed, failed: results.length - passed, results };
+}

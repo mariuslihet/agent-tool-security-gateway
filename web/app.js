@@ -3,16 +3,22 @@ const svgNS = 'http://www.w3.org/2000/svg';
 const pages = {
   overview: ['Overview', 'Security overview', 'YOUR ENFORCEMENT BOUNDARY', 'Understand what your agents can do, and what needs your attention.'],
   approvals: ['Approvals', 'Approval queue', 'HUMAN IN THE LOOP', 'Review exact requests before an agent can proceed.'],
+  incidents: ['Incidents', 'Incident center', 'INVESTIGATE & RESPOND', 'Group high-risk events, record findings, and track the response.'],
+  alerts: ['Security alerts', 'Security alerts', 'WATCH THE BOUNDARY', 'Turn repeated signals into a focused investigation queue.'],
+  safety: ['Safety controls', 'Safety controls', 'TEMPORARY CONTAINMENT', 'Pause new reservations while investigating. Existing operations may still finish.'],
   sessions: ['Sessions', 'Session explorer', 'TASK-SCOPED AUTHORITY', 'Inspect capabilities, data context and resource budgets.'],
+  requests: ['Request explorer', 'Request explorer', 'FOLLOW EACH DECISION', 'Search outcomes, inspect the timeline and review arguments with an audit trail.'],
   tools: ['Tool catalog', 'Tool catalog', 'REGISTERED EXECUTION SURFACE', 'Every tool has a contract. Every contract has a boundary.'],
   policy: ['Policy studio', 'Policy studio', 'DETERMINISTIC BY DESIGN', 'Validate and compare decisions before changing host configuration.'],
   audit: ['Audit explorer', 'Audit explorer', 'DURABLE EVIDENCE', 'Find the decision, follow the session, and export the record.'],
+  agent: ['AI agent', 'Local AI agent', 'REAL MODEL · GUARDED TOOLS', 'Give the local model a task and inspect each tool decision at the gateway.'],
 };
 const reasons = {
   POLICY_DENIED: 'Blocked by a policy rule', CAPABILITY_DENIED: 'Outside task permissions', UNKNOWN_TOOL: 'Tool is not registered',
   SENSITIVE_EGRESS_DENIED: 'Sensitive data cannot leave', UNTRUSTED_EGRESS_DENIED: 'Untrusted source before outbound action',
   SECRET_EGRESS_DENIED: 'Detected credential in outgoing data', PII_EGRESS_DENIED: 'Detected personal data in outgoing data',
   CALL_BUDGET_EXCEEDED: 'Task call budget exhausted', COST_BUDGET_EXCEEDED: 'Task cost budget exhausted',
+  SESSION_QUARANTINED: 'Session tree temporarily quarantined', TOOL_PAUSED: 'Registered tool temporarily paused',
   HUMAN_APPROVAL_REQUIRED: 'Human approval required', EXECUTION_TIMEOUT: 'Timed out; effect is uncertain',
   EXECUTION_UNCERTAIN: 'External effect requires reconciliation', REVOKED: 'Access has been revoked',
   SESSION_INACTIVE: 'Session expired or inactive', CONFIGURATION_CHANGED: 'Bound configuration has changed',
@@ -54,7 +60,7 @@ function details(title, eyebrow, content) { $('detail-title').textContent = titl
 
 async function api(path, body, { token = accessToken, raw = false } = {}) {
   const controller = new AbortController(); controllers.add(controller);
-  const timer = setTimeout(() => controller.abort(), 10000);
+  const timer = setTimeout(() => controller.abort(), path === '/v1/operator/agent/check' ? 15000 : 10000);
   try {
     const response = await fetch(path, { method: body === undefined ? 'GET' : 'POST', headers: { ...(token ? { authorization: `Bearer ${token}` } : {}), ...(body === undefined ? {} : { 'content-type': 'application/json' }) }, body: body === undefined ? undefined : JSON.stringify(body), signal: controller.signal, cache: 'no-store', redirect: 'error' });
     if (!response.ok) {
@@ -81,12 +87,14 @@ async function busy(control, operation) {
 }
 function clearSource() {
   generation++; for (const controller of controllers) controller.abort(); controllers.clear(); accessToken = '';
+  window.dispatchEvent(new Event('gateway:source-cleared'));
   status = null; policyData = null; previewData = null; selectedReview = null; selectedRevocation = null;
   for (const p of Object.values(paging)) { p.items = []; p.cursor = null; p.nextCursor = null; p.history = []; p.request++; }
   paging.audit.filters = {};
   for (const dialog of document.querySelectorAll('dialog[open]')) dialog.close();
   for (const id of ['token', 'review-reason', 'policy-editor', 'test-arguments', 'approval-search', 'session-search', 'tool-search', 'audit-search']) $(id).value = '';
   for (const id of ['detail-content', 'review-context', 'connected-info', 'approval-list', 'attention-list', 'recent-events', 'reason-list', 'tool-list', 'policy-diagnostics', 'activity-chart', 'chart-axis']) $(id).replaceChildren();
+  $('revoke-target').textContent = '';
   for (const id of ['metric-executions', 'metric-blocked', 'metric-approvals', 'metric-sessions']) $(id).textContent = '—';
   for (const id of ['overview-policy', 'overview-tools', 'overview-integrity', 'overview-latency', 'policy-fingerprint']) $(id).textContent = '—';
   $('workspace-name').textContent = 'Workspace'; $('workspace-subtitle').textContent = 'Loading…'; $('connection-label').textContent = 'Connect gateway';
@@ -120,6 +128,7 @@ function renderWorkspace(resetEditor = false) {
   $('app-version').textContent = status.version;
   renderOverview(); renderApprovals(); renderTools();
   if (resetEditor || !$('policy-editor').value) resetEditorToActive();
+  window.dispatchEvent(new Event('gateway:workspace'));
 }
 function renderOverview() {
   const stats = status.statistics, count = type => Object.entries(stats.counts).filter(([key]) => key.startsWith(type + '|')).reduce((sum, [, value]) => sum + value, 0);
@@ -203,6 +212,7 @@ function review(a, decision) {
   $('review-context').replaceChildren(el('h3', a.tool, 'mono'), el('pre', JSON.stringify(a.arguments, null, 2)), el('p', `Binding ${a.binding}`, 'mono wrap muted'));
   $('review-reason').value = ''; $('review-error').textContent = '';
   $('review-submit').textContent = decision === 'approve' ? 'Approve exact request' : 'Reject request'; showDialog('review-dialog');
+  $('review-submit').disabled = false;
 }
 async function loadSessions(cursor = null, history = []) {
   const observed = generation, request = ++paging.sessions.request;
@@ -241,7 +251,8 @@ async function showSession(id) {
     content.append(grid, section('Task capabilities', capabilities), disclosure('Inspect full capability contracts', el('pre', JSON.stringify(s.grants, null, 2))));
     const events = el('div'); renderRecent(events, data.events.slice(0, 8)); content.append(section('Session timeline', events));
     const actions = el('div', undefined, 'detail-action'), revoke = button('Revoke session access', 'button danger', () => askRevoke('session', s.id));
-    revoke.disabled = !canChange() || s.status === 'revoked'; actions.append(el('p', 'Revocation also blocks this session’s descendants.'), revoke); content.append(actions);
+    const quarantine = button('Quarantine temporarily', 'button secondary', () => window.dispatchEvent(new CustomEvent('gateway:contain-target', { detail: { kind: 'session', target: s.id } })));
+    quarantine.disabled = !canChange(); revoke.disabled = !canChange() || s.status === 'revoked'; actions.append(el('p', s.containment ? `Session quarantine active until ${date(s.containment.expires)}.` : 'Revocation also blocks this session’s descendants.'), quarantine, revoke); content.append(actions);
     details('Session details', 'TASK AUTHORITY & PROVENANCE', content);
   } catch (error) { if (observed === generation) notify(userError(error), true); }
 }
@@ -260,6 +271,8 @@ function renderTools() {
 }
 function showTool(tool) {
   const content = el('div'), grid = el('div', undefined, 'detail-grid');
+  const hold = button('Review temporary tool hold', 'button secondary', () => window.dispatchEvent(new CustomEvent('gateway:contain-target', { detail: { kind: 'tool', target: tool.name } })));
+  hold.disabled = !canChange(); content.append(hold);
   grid.append(field('Execution boundary', tool.egress ? 'Outbound' : 'Internal'), field('Output classification', tool.outputLabels.join(', ') || 'No predeclared labels'), field('Cost reservation', String(tool.cost)), field('Timeout', `${tool.timeoutMs} ms`));
   content.append(el('p', tool.description, 'muted'), section('Execution metadata', grid), section('Pinned fingerprint', el('p', tool.fingerprint, 'mono wrap')), section('Input contract', el('pre', JSON.stringify(tool.inputSchema, null, 2))), section('Output contract', el('pre', JSON.stringify(tool.outputSchema, null, 2))));
   const rules = policyData.policy.rules.filter(r => r.tools.includes('*') || r.tools.includes(tool.name));
@@ -270,6 +283,7 @@ function showTool(tool) {
 function askRevoke(type, value) {
   if (!canChange()) return;
   selectedRevocation = { type, value, generation }; $('detail-dialog').close();
+  $('confirm-revoke').disabled = false;
   $('revoke-title').textContent = `Revoke ${type} access?`; $('revoke-target').textContent = value; $('revoke-error').textContent = ''; showDialog('revoke-dialog');
 }
 function auditFilters() {
@@ -364,7 +378,7 @@ $('connect-dialog').addEventListener('close', () => { $('token').value = ''; });
 $('quick-nav').addEventListener('click', () => showDialog('navigation-dialog'));
 document.addEventListener('keydown', event => {
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); if (!document.querySelector('dialog[open]')) showDialog('navigation-dialog'); }
-  if ($('navigation-dialog').open && /^[1-6]$/.test(event.key)) { event.preventDefault(); location.hash = Object.keys(pages)[Number(event.key) - 1]; $('navigation-dialog').close(); }
+  if ($('navigation-dialog').open && /^[0-9]$/.test(event.key)) { event.preventDefault(); location.hash = Object.keys(pages)[(Number(event.key) || 10) - 1]; $('navigation-dialog').close(); }
 });
 window.addEventListener('hashchange', () => navigate(true));
 $('theme-toggle').addEventListener('click', () => { const theme = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light'; document.documentElement.dataset.theme = theme; try { localStorage.setItem('gateway.theme', theme); } catch {} });

@@ -8,9 +8,12 @@ The console opens in **Sample workspace** mode. Its data is a committed fixture 
 |---|---|
 | Overview | Inspect persistent execution/denial totals, review queue size, session count, hourly activity, frequent denial reasons and recent decisions |
 | Approvals | Search open records, filter pending/approved/expired requests, inspect transformed arguments and binding, record a decision note |
+| Incidents | Investigate grouped high-risk signals, link source/session records, and track encrypted notes and version-checked dispositions |
+| Safety Controls | Temporarily pause all/outbound reservations, inspect expiry and reason, and explicitly resume the current revision |
 | Sessions | Page through tasks, filter the current page, inspect inherited data labels, capability grants, budgets and timeline; operators can revoke a session |
 | Tool Catalog | Search registered contracts, distinguish internal/outbound tools, inspect input/output schemas and fingerprints; operators can revoke a tool within the tenant |
 | Policy Studio | Edit a tab-local candidate, validate its contract, diagnose broad grants, compare active/candidate rule decisions and inspection restrictions |
+| Policy Studio regression panel | Run up to 50 hypothetical cases with expected outcomes and download a policy/suite-bound report |
 | Audit Explorer | Search metadata, filter event type/time, page a stable snapshot, inspect related sessions and download bounded JSONL exports |
 
 Navigation supports keyboard focus, a skip link and `Ctrl K` / `Cmd K` quick navigation. Native modal dialogs handle focus containment and Escape. The layout adapts to narrow screens, uses tabular numbers for changing metrics, and respects reduced-motion preferences. Theme selection is the only browser-storage preference; credentials are not persisted.
@@ -75,3 +78,10 @@ The reference server allows 120 authenticated requests per credential per minute
 ## Upgrade behavior
 
 On opening a 0.1-style database, the Store builds its audit index from verified existing records. Signed events, encrypted sessions, requests and idempotency outcomes are retained. Tool descriptions/contracts were improved in 0.2, which changes their pinned fingerprints; older task sessions can therefore show `configuration_changed`. Start a newly authorized task instead of attempting to bypass that binding.
+# Investigation additions in 0.4
+
+The console now has ten workspaces. **Request Explorer** filters persisted outcomes and opens a recent per-request timeline. Explicit argument inspection requires an operator credential and a reason, with an audit record before disclosure. **Security Alerts** lets operators configure rolling threshold rules and maintain version-checked dispositions. Overview downloads a metadata-only workspace report. See [investigation, local alerts and reporting](investigation.md) for limits, role boundaries and retention behavior.
+
+## Scoped response in 0.5
+
+**Safety Controls** adds a scoped hold form, exact-target confirmation, active/all-target filters and audited release. Session and tool detail dialogs prefill that form. **Overview** adds read-only health diagnostics for operational follow-up; sampling coverage is explicit. Viewer access supports investigation while mutations require an operator. See [scoped containment and workspace health](scoped-containment.md).

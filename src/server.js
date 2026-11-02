@@ -3,14 +3,21 @@ import { readFileSync } from 'node:fs';
 import { createHash, randomUUID } from 'node:crypto';
 import { assert, bounded, equal, GatewayError, idPattern } from './util.js';
 import { Policy } from './policy.js';
-import { validatePolicyDocument, previewPolicy } from './policy-lab.js';
+import { validatePolicyDocument, previewPolicy, runPolicySuite } from './policy-lab.js';
 import { VERSION } from './version.js';
+import { buildWorkspaceReport } from './investigation.js';
+import { workspaceHealth } from './workspace-health.js';
 
 const assets = new Map([
   ['/', ['text/html; charset=utf-8', readFileSync(new URL('../web/index.html', import.meta.url))]],
   ['/app.js', ['text/javascript; charset=utf-8', readFileSync(new URL('../web/app.js', import.meta.url))]],
+  ['/operations.js', ['text/javascript; charset=utf-8', readFileSync(new URL('../web/operations.js', import.meta.url))]],
+  ['/insights.js', ['text/javascript; charset=utf-8', readFileSync(new URL('../web/insights.js', import.meta.url))]],
+  ['/containment.js', ['text/javascript; charset=utf-8', readFileSync(new URL('../web/containment.js', import.meta.url))]],
+  ['/agent.js', ['text/javascript; charset=utf-8', readFileSync(new URL('../web/agent.js', import.meta.url))]],
   ['/style.css', ['text/css; charset=utf-8', readFileSync(new URL('../web/style.css', import.meta.url))]],
   ['/preview.json', ['application/json; charset=utf-8', readFileSync(new URL('../web/preview.json', import.meta.url))]],
+  ['/regression.json', ['application/json; charset=utf-8', readFileSync(new URL('../policies/regression.json', import.meta.url))]],
 ]);
 const tokenHash = token => createHash('sha256').update(token).digest('hex');
 const securityHeaders = {
@@ -44,7 +51,7 @@ function queryOptions(params, allowed) {
 }
 const auditFilters = ['limit', 'cursor', 'type', 'tool', 'code', 'session', 'search', 'from', 'to'];
 
-export function createGatewayServer({ gateway, credentials, metrics, maxBodyBytes = 131072, rateLimit = 120, heavyRateLimit = 6, clock = Date.now }) {
+export function createGatewayServer({ gateway, credentials, metrics, agentRuntime, maxBodyBytes = 131072, rateLimit = 120, heavyRateLimit = 6, clock = Date.now }) {
   assert(Array.isArray(credentials) && credentials.length > 0, 'CREDENTIALS_REQUIRED');
   assert([rateLimit, heavyRateLimit].every(value => Number.isSafeInteger(value) && value > 0), 'INVALID_SERVER_CONFIG');
   const identities = credentials.map(c => {
@@ -83,6 +90,24 @@ export function createGatewayServer({ gateway, credentials, metrics, maxBodyByte
         if (identity.heavyUsed > heavyRateLimit) { res.setHeader('retry-after', Math.max(1, Math.ceil((identity.reset - clock()) / 1000))); assert(false, 'RATE_LIMITED'); }
       };
       const agent = () => assert(identity.role === 'agent', 'FORBIDDEN');
+      if (req.method === 'GET' && path === '/v1/operator/agent/config') {
+        reader(); queryOptions(url.searchParams, []); send(200, agentRuntime?.configuration() ?? { configured: false, provider: 'ollama', model: null, local: true }); return;
+      }
+      if (req.method === 'POST' && path === '/v1/operator/agent/check') {
+        operator(); heavy(); shape(await readBody(req, maxBodyBytes), []); assert(agentRuntime, 'LLM_NOT_CONFIGURED'); send(200, await agentRuntime.check()); return;
+      }
+      if (path === '/v1/operator/agent/runs' && req.method === 'GET') {
+        operator(); queryOptions(url.searchParams, []); assert(agentRuntime, 'LLM_NOT_CONFIGURED'); send(200, agentRuntime.list(identity.tenant)); return;
+      }
+      if (path === '/v1/operator/agent/runs' && req.method === 'POST') {
+        operator(); heavy(); const body = await readBody(req, maxBodyBytes); shape(body, ['id', 'prompt'], ['id', 'prompt']); assert(agentRuntime, 'LLM_NOT_CONFIGURED'); send(202, agentRuntime.start(identity.tenant, body)); return;
+      }
+      const agentRun = /^\/v1\/operator\/agent\/runs\/([a-zA-Z0-9_-]{1,96})(?:\/(resume|cancel))?$/.exec(path);
+      if (agentRun && req.method === 'GET' && !agentRun[2]) { operator(); queryOptions(url.searchParams, []); assert(agentRuntime, 'LLM_NOT_CONFIGURED'); send(200, agentRuntime.get(identity.tenant, agentRun[1])); return; }
+      if (agentRun && req.method === 'POST' && agentRun[2]) {
+        operator(); heavy(); shape(await readBody(req, maxBodyBytes), []); assert(agentRuntime, 'LLM_NOT_CONFIGURED');
+        send(200, agentRun[2] === 'resume' ? agentRuntime.resume(identity.tenant, agentRun[1]) : agentRuntime.cancel(identity.tenant, agentRun[1])); return;
+      }
       if (req.method === 'GET' && path === '/v1/tools') { agent(); send(200, { tools: gateway.registry.list() }); return; }
       if (req.method === 'POST' && path === '/v1/sessions') {
         agent(); const body = await readBody(req, maxBodyBytes); shape(body, ['parentId', 'grants', 'limits']);
@@ -94,7 +119,72 @@ export function createGatewayServer({ gateway, credentials, metrics, maxBodyByte
         agent(); send(200, await gateway.execute(identity.principal, execution[1], await readBody(req, maxBodyBytes))); return;
       }
       if (req.method === 'GET' && path === '/v1/operator/status') {
-        reader(); send(200, { identity: { principal: identity.principal, tenant: identity.tenant, role: identity.role }, version: VERSION, policy: { version: gateway.policy.data.version, hash: gateway.policy.hash }, registryHash: gateway.registry.hash, audit: gateway.store.auditStatus(), statistics: gateway.store.statistics(identity.tenant), metrics: metrics?.snapshot(identity.tenant) ?? {}, approvals: gateway.approvals(identity.tenant), events: gateway.store.events(identity.tenant, 10) }); return;
+        reader(); send(200, { identity: { principal: identity.principal, tenant: identity.tenant, role: identity.role }, version: VERSION, policy: { version: gateway.policy.data.version, hash: gateway.policy.hash }, registryHash: gateway.registry.hash, audit: gateway.store.auditStatus(), statistics: gateway.store.statistics(identity.tenant), metrics: metrics?.snapshot(identity.tenant) ?? {}, approvals: gateway.approvals(identity.tenant), events: gateway.store.events(identity.tenant, 10), operations: { incidents: gateway.incidents.counts(identity.tenant), safety: gateway.safety.get(identity.tenant) } }); return;
+      }
+      if (req.method === 'GET' && path === '/v1/operator/incidents') {
+        reader(); send(200, gateway.incidents.list(identity.tenant, queryOptions(url.searchParams, ['limit', 'state', 'before']))); return;
+      }
+      if (path === '/v1/operator/requests' && req.method === 'GET') {
+        reader(); send(200, gateway.requests.list(identity.tenant, queryOptions(url.searchParams, ['limit', 'cursor', 'status', 'tool', 'search']))); return;
+      }
+      const requestPath = /^\/v1\/operator\/requests\/([a-zA-Z0-9_-]{1,128})\/([a-zA-Z0-9_-]{1,128})(\/inspect)?$/.exec(path);
+      if (requestPath && req.method === 'GET' && !requestPath[3]) {
+        reader(); send(200, gateway.requests.get(identity.tenant, requestPath[1], requestPath[2])); return;
+      }
+      if (requestPath && req.method === 'POST' && requestPath[3]) {
+        operator(); heavy(); const body = await readBody(req, maxBodyBytes); shape(body, ['reason'], ['reason']);
+        send(200, gateway.requests.inspect({ tenant: identity.tenant, actor: identity.principal }, { sessionId: requestPath[1], requestId: requestPath[2], reason: body.reason })); return;
+      }
+      if (path === '/v1/operator/alert-rules' && req.method === 'GET') { reader(); send(200, { items: gateway.alerts.rules(identity.tenant) }); return; }
+      if (path === '/v1/operator/alert-rules' && req.method === 'POST') {
+        operator(); const body = await readBody(req, maxBodyBytes); shape(body, ['id', 'expectedVersion', 'title', 'category', 'threshold', 'windowMinutes', 'enabled', 'reason'], ['expectedVersion', 'title', 'category', 'threshold', 'windowMinutes', 'enabled', 'reason']);
+        send(200, gateway.alerts.configure({ tenant: identity.tenant, actor: identity.principal }, body)); return;
+      }
+      if (path === '/v1/operator/alerts' && req.method === 'GET') { reader(); send(200, gateway.alerts.list(identity.tenant, queryOptions(url.searchParams, ['limit', 'state', 'before']))); return; }
+      const alertPath = /^\/v1\/operator\/alerts\/([a-zA-Z0-9_-]{1,128})$/.exec(path);
+      if (alertPath && req.method === 'POST') {
+        operator(); const body = await readBody(req, maxBodyBytes); shape(body, ['expectedVersion', 'state', 'reason'], ['expectedVersion', 'state', 'reason']);
+        send(200, gateway.alerts.update({ tenant: identity.tenant, actor: identity.principal }, alertPath[1], body)); return;
+      }
+      if (path === '/v1/operator/report' && req.method === 'POST') {
+        reader(); heavy(); shape(await readBody(req, maxBodyBytes), []); send(200, buildWorkspaceReport(gateway, identity.tenant)); return;
+      }
+      const incidentPath = /^\/v1\/operator\/incidents\/([a-zA-Z0-9_-]{1,128})$/.exec(path);
+      if (incidentPath && req.method === 'GET') {
+        reader(); send(200, { incident: gateway.incidents.get(identity.tenant, incidentPath[1]) }); return;
+      }
+      if (incidentPath && req.method === 'POST') {
+        operator(); const body = await readBody(req, maxBodyBytes); shape(body, ['expectedVersion', 'state', 'owner', 'reason'], ['expectedVersion', 'state', 'reason']);
+        send(200, gateway.incidents.update({ tenant: identity.tenant, actor: identity.principal }, incidentPath[1], body)); return;
+      }
+      if (path === '/v1/operator/safety' && req.method === 'GET') {
+        reader(); send(200, gateway.safety.get(identity.tenant)); return;
+      }
+      if (path === '/v1/operator/containment' && req.method === 'GET') {
+        reader(); queryOptions(url.searchParams, []); send(200, gateway.containment.list(identity.tenant)); return;
+      }
+      if (path === '/v1/operator/containment/target' && req.method === 'GET') {
+        reader(); const input = queryOptions(url.searchParams, ['kind', 'target']); shape(input, ['kind', 'target'], ['kind', 'target']);
+        send(200, gateway.containment.get(identity.tenant, input.kind, input.target)); return;
+      }
+      if (path === '/v1/operator/containment/hold' && req.method === 'POST') {
+        operator(); const body = await readBody(req, maxBodyBytes); shape(body, ['kind', 'target', 'expectedRevision', 'durationMinutes', 'reason'], ['kind', 'target', 'expectedRevision', 'durationMinutes', 'reason']);
+        send(200, gateway.containment.hold({ tenant: identity.tenant, actor: identity.principal }, body)); return;
+      }
+      if (path === '/v1/operator/containment/release' && req.method === 'POST') {
+        operator(); const body = await readBody(req, maxBodyBytes); shape(body, ['kind', 'target', 'expectedRevision', 'reason'], ['kind', 'target', 'expectedRevision', 'reason']);
+        send(200, gateway.containment.release({ tenant: identity.tenant, actor: identity.principal }, body)); return;
+      }
+      if (path === '/v1/operator/workspace-health' && req.method === 'GET') {
+        reader(); queryOptions(url.searchParams, []); heavy(); send(200, workspaceHealth(gateway, identity.tenant)); return;
+      }
+      if (path === '/v1/operator/safety/pause' && req.method === 'POST') {
+        operator(); const body = await readBody(req, maxBodyBytes); shape(body, ['expectedRevision', 'scope', 'durationMinutes', 'reason'], ['expectedRevision', 'scope', 'durationMinutes', 'reason']);
+        send(200, gateway.safety.pause({ tenant: identity.tenant, actor: identity.principal }, body)); return;
+      }
+      if (path === '/v1/operator/safety/resume' && req.method === 'POST') {
+        operator(); const body = await readBody(req, maxBodyBytes); shape(body, ['expectedRevision', 'reason'], ['expectedRevision', 'reason']);
+        send(200, gateway.safety.resume({ tenant: identity.tenant, actor: identity.principal }, body)); return;
       }
       if (req.method === 'GET' && path === '/v1/operator/sessions') {
         reader(); send(200, gateway.sessions(identity.tenant, queryOptions(url.searchParams, ['limit', 'cursor']))); return;
@@ -135,6 +225,11 @@ export function createGatewayServer({ gateway, credentials, metrics, maxBodyByte
         const context = { registry: gateway.registry, tenant: identity.tenant, principal: body.principal ?? 'policy-preview', tool: body.tool, arguments: body.arguments, labels: body.labels ?? [] };
         send(200, { current: previewPolicy({ ...context, policy: gateway.policy }), candidate: previewPolicy({ ...context, policy: candidate }), execution: false }); return;
       }
+      if (req.method === 'POST' && path === '/v1/operator/policy/suite') {
+        reader(); const body = await readBody(req, maxBodyBytes); shape(body, ['policy', 'cases'], ['cases']);
+        if (Object.hasOwn(body, 'policy')) assert(validatePolicyDocument(body.policy, gateway.registry).valid, 'INVALID_POLICY');
+        send(200, runPolicySuite({ registry: gateway.registry, policy: Object.hasOwn(body, 'policy') ? new Policy(body.policy) : gateway.policy, tenant: identity.tenant, cases: body.cases })); return;
+      }
       if (req.method === 'POST' && path === '/v1/operator/approvals') {
         operator(); const body = await readBody(req, maxBodyBytes); shape(body, ['sessionId', 'requestId', 'binding', 'decision', 'reason'], ['sessionId', 'requestId', 'binding', 'decision']);
         send(200, gateway.decideApproval({ tenant: identity.tenant, approver: identity.principal }, body)); return;
@@ -152,7 +247,7 @@ export function createGatewayServer({ gateway, credentials, metrics, maxBodyByte
       send(404, { code: 'NOT_FOUND' });
     } catch (error) {
       const code = error instanceof GatewayError ? error.code : 'GATEWAY_UNAVAILABLE';
-      const status = code === 'UNAUTHENTICATED' ? 401 : ['FORBIDDEN', 'ORIGIN_DENIED', 'SELF_APPROVAL_DENIED'].includes(code) ? 403 : code === 'RATE_LIMITED' ? 429 : code === 'PAYLOAD_TOO_LARGE' ? 413 : ['GATEWAY_UNAVAILABLE', 'AUDIT_CORRUPTED', 'STORAGE_INTEGRITY_FAILURE'].includes(code) ? 503 : 400;
+      const status = code === 'UNAUTHENTICATED' ? 401 : code === 'VERSION_CONFLICT' ? 409 : ['FORBIDDEN', 'ORIGIN_DENIED', 'SELF_APPROVAL_DENIED'].includes(code) ? 403 : code === 'RATE_LIMITED' ? 429 : code === 'PAYLOAD_TOO_LARGE' ? 413 : ['GATEWAY_UNAVAILABLE', 'AUDIT_CORRUPTED', 'STORAGE_INTEGRITY_FAILURE'].includes(code) ? 503 : 400;
       send(status, { code });
     }
   });

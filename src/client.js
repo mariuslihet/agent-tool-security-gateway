@@ -35,6 +35,33 @@ function query(path, options = {}) {
   return `${path}${params.size ? '?' + params : ''}`;
 }
 export class ControlPlaneClient extends GatewayClient {
+  agentConfiguration() { return this.request('/v1/operator/agent/config', undefined, 'GET'); }
+  checkAgent() { return this.request('/v1/operator/agent/check', {}); }
+  startAgent(input) { return this.request('/v1/operator/agent/runs', input); }
+  agentRuns() { return this.request('/v1/operator/agent/runs', undefined, 'GET'); }
+  agentRun(id) { return this.request(`/v1/operator/agent/runs/${encodeURIComponent(id)}`, undefined, 'GET'); }
+  resumeAgent(id) { return this.request(`/v1/operator/agent/runs/${encodeURIComponent(id)}/resume`, {}); }
+  cancelAgent(id) { return this.request(`/v1/operator/agent/runs/${encodeURIComponent(id)}/cancel`, {}); }
+  requests(options) { return this.request(query('/v1/operator/requests', options), undefined, 'GET'); }
+  requestDetail(sessionId, requestId) { return this.request(`/v1/operator/requests/${encodeURIComponent(sessionId)}/${encodeURIComponent(requestId)}`, undefined, 'GET'); }
+  inspectArguments(sessionId, requestId, reason) { return this.request(`/v1/operator/requests/${encodeURIComponent(sessionId)}/${encodeURIComponent(requestId)}/inspect`, { reason }); }
+  alertRules() { return this.request('/v1/operator/alert-rules', undefined, 'GET'); }
+  configureAlert(input) { return this.request('/v1/operator/alert-rules', input); }
+  alerts(options) { return this.request(query('/v1/operator/alerts', options), undefined, 'GET'); }
+  updateAlert(id, input) { return this.request(`/v1/operator/alerts/${encodeURIComponent(id)}`, input); }
+  workspaceReport() { return this.request('/v1/operator/report', {}); }
+  incidents(options) { return this.request(query('/v1/operator/incidents', options), undefined, 'GET'); }
+  incident(id) { return this.request(`/v1/operator/incidents/${encodeURIComponent(id)}`, undefined, 'GET'); }
+  updateIncident(id, input) { return this.request(`/v1/operator/incidents/${encodeURIComponent(id)}`, input); }
+  safety() { return this.request('/v1/operator/safety', undefined, 'GET'); }
+  containment() { return this.request('/v1/operator/containment', undefined, 'GET'); }
+  containmentTarget(kind, target) { return this.request(query('/v1/operator/containment/target', { kind, target }), undefined, 'GET'); }
+  holdTarget(input) { return this.request('/v1/operator/containment/hold', input); }
+  releaseTarget(input) { return this.request('/v1/operator/containment/release', input); }
+  workspaceHealth() { return this.request('/v1/operator/workspace-health', undefined, 'GET'); }
+  pause(input) { return this.request('/v1/operator/safety/pause', input); }
+  resume(input) { return this.request('/v1/operator/safety/resume', input); }
+  runPolicySuite(input) { return this.request('/v1/operator/policy/suite', input); }
   status() { return this.request('/v1/operator/status', undefined, 'GET'); }
   sessions(options) { return this.request(query('/v1/operator/sessions', options), undefined, 'GET'); }
   session(id) { return this.request(`/v1/operator/sessions/${encodeURIComponent(id)}`, undefined, 'GET'); }

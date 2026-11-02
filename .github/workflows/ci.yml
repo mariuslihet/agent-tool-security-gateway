@@ -19,5 +19,6 @@ jobs:
       - run: npm run check
       - run: npm test
       - run: npm run simulate
+      - run: npm run policy:test
       - run: npm run demo
       - run: npm audit --omit=dev

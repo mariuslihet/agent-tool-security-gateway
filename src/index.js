@@ -6,5 +6,12 @@ export { GatewayClient, ControlPlaneClient, GatewayApiError } from './client.js'
 export { SecretBroker, httpsJsonAdapter, isolatedSum, readOnlyFilesAdapter, readOnlySqliteAdapter } from './adapters.js';
 export { Metrics, openTelemetrySink } from './telemetry.js';
 export { signedApprovalWebhook } from './notifications.js';
-export { validatePolicyDocument, previewPolicy } from './policy-lab.js';
+export { validatePolicyDocument, previewPolicy, runPolicySuite } from './policy-lab.js';
+export { IncidentService, SafetyService } from './operations.js';
 export { VERSION } from './version.js';
+export { AlertService } from './alerts.js';
+export { RequestExplorer, buildWorkspaceReport } from './investigation.js';
+export { ScopedContainment, CONTAINMENT_LIMITS } from './containment.js';
+export { workspaceHealth } from './workspace-health.js';
+export { OllamaProvider, configuredOllama } from './ollama.js';
+export { AgentRuntime, AGENT_LIMITS } from './agent-runtime.js';

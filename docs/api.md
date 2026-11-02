@@ -19,6 +19,12 @@ Base URL for local development: `http://127.0.0.1:8787`. All `/v1/` endpoints re
 | GET | `/v1/operator/policy` | Viewer/operator | Active policy and tenant-specific tool-revocation flags |
 | POST | `/v1/operator/policy/validate` | Viewer/operator | Validate `{policy}` and return diagnostics |
 | POST | `/v1/operator/policy/preview` | Viewer/operator | Compare hypothetical rules/inspection without issuing authority |
+| POST | `/v1/operator/policy/suite` | Viewer/operator | Run up to 50 expected-outcome hypothetical cases |
+| GET | `/v1/operator/incidents` | Viewer/operator | List tenant incident records with state and page filters |
+| GET/POST | `/v1/operator/incidents/:id` | Viewer/operator read; operator write | Inspect or update the exact expected version |
+| GET | `/v1/operator/safety` | Viewer/operator | Inspect current temporary containment |
+| POST | `/v1/operator/safety/pause` | Operator | Pause all or outbound reservations with an expiry |
+| POST | `/v1/operator/safety/resume` | Operator | Resume the exact expected pause revision |
 | POST | `/v1/operator/approvals` | Operator | Decide `{sessionId, requestId, binding, decision}` |
 | POST | `/v1/operator/revocations` | Operator | Revoke `{type, value}` in the operator's tenant |
 | POST | `/v1/operator/simulate` | Operator | Compare `{principal, sessionId, calls, policy}` without execution |
@@ -49,6 +55,8 @@ Tool outcomes return HTTP 200 so an agent can handle them as data:
 
 ## HTTP errors
 
+Incident and containment changes return 409 `VERSION_CONFLICT` when the supplied version/revision is stale. See [response workflows and request shapes](incident-response.md).
+
 Unauthenticated requests return 401. Role/origin failures return 403. Rate limits return 429, oversized bodies 413, invalid bodies/configurations 400, unknown routes 404, and unexpected gateway failures 503. The body contains a stable `code`, never a raw exception, stack trace or secret.
 
 The reference limit is 120 authenticated requests per credential per minute per server process. It resets after restart and is not a distributed limiter. Budgets and execution idempotency are durable. Use edge connection limits and an identity-provider-aware limiter for an Internet-facing deployment.
@@ -66,3 +74,47 @@ On a network timeout, retry with the same ID. The gateway will return a cached o
 Approval decisions are `approve`, `reject` or `cancel`. The operator copies the `binding` from the preview. It commits the tenant, principal, session, request, transformed arguments, tool fingerprint and policy hash. All normal checks run again on resume. Deny rules and hard data-flow controls cannot be overridden.
 
 Revocation types: `session`, `principal`, `tenant`, `tool`, `destination`. They are scoped to the operator's tenant. Destination values are exact origin strings, such as `https://reports.example.com`. Revocations persist across restarts and have no un-revoke endpoint in this reference service.
+## Investigation and local alerts (0.4)
+
+All paths below require tenant-scoped bearer credentials. Unknown body/query fields are rejected. `VERSION_CONFLICT` returns 409; role failures return 403. Viewer and operator are readers; agent credentials cannot use these endpoints.
+
+| Method/path | Role | Input / result |
+|---|---|---|
+| `GET /v1/operator/requests` | Reader | `limit,cursor,status,tool,search`; metadata `items,nextCursor` |
+| `GET /v1/operator/requests/:sessionId/:requestId` | Reader | Request metadata and bounded exact-request timeline |
+| `POST /v1/operator/requests/:sessionId/:requestId/inspect` | Operator | `{reason}`; redacted stored arguments, never outputs; heavy budget |
+| `GET /v1/operator/alert-rules` | Reader | Encrypted rule records, redacted names for display |
+| `POST /v1/operator/alert-rules` | Operator | `{id?,expectedVersion,title,category,threshold,windowMinutes,enabled,reason}`; omit `id` and use version 0 to create |
+| `GET /v1/operator/alerts` | Reader | `limit,state,before`; `items,nextBefore` |
+| `POST /v1/operator/alerts/:id` | Operator | `{expectedVersion,state,reason}`; state `acknowledged` or `resolved` |
+| `POST /v1/operator/report` | Reader | `{}`; metadata snapshot and SHA-256 content hash; heavy budget |
+
+Request filters use status `pending,running,completed,denied,indeterminate,output_blocked`. Alert filters accept `all,open,acknowledged,resolved`. Alert `before` is a numeric row boundary, not an authenticated snapshot cursor; tenant authorization is applied independently on every page. See [semantics, privacy and limits](investigation.md).
+
+## Scoped containment and health (0.5)
+
+| Method/path | Role | Input / result |
+|---|---|---|
+| `GET /v1/operator/containment` | Viewer/operator | Latest records for up to 100 scoped targets and reference limits; no query fields |
+| `GET /v1/operator/containment/target` | Viewer/operator | Required query `kind=session\|tool,target`; current record or clear revision 0 |
+| `POST /v1/operator/containment/hold` | Operator | `{kind,target,expectedRevision,durationMinutes,reason}` |
+| `POST /v1/operator/containment/release` | Operator | `{kind,target,expectedRevision,reason}` |
+| `GET /v1/operator/workspace-health` | Viewer/operator | Checks, coverage, generation time and cached audit verification time; no query fields; heavy budget |
+
+Agent credentials cannot use these endpoints. Session targets require tenant ownership; tools must be registered. Reasons are required, 3–500 characters. Durations are integers from 1–1,440 minutes. Revision conflicts return 409, role failures 403, invalid targets/limits 400 and unavailable storage 503. There is no delete operation. GETs do not mutate controls.
+
+New runtime responses use `status: paused`, `retryable: true`, with code `SESSION_QUARANTINED` or `TOOL_PAUSED`, target kind/name, revision and expiry. Preserve the exact original request when retrying. See [overlap, expiry, privacy and diagnostics limits](scoped-containment.md).
+
+## Local AI tasks (0.6)
+
+| Method/path | Role | Behavior |
+|---|---|---|
+| `GET /v1/operator/agent/config` | Viewer/operator | Non-secret provider/model configuration and limits |
+| `POST /v1/operator/agent/check` | Operator | `{}`; checks local model capabilities; heavy budget |
+| `POST /v1/operator/agent/runs` | Operator | `{id,prompt}`; creates task and returns 202; heavy budget |
+| `GET /v1/operator/agent/runs` | Operator | Up to 25 latest task summaries |
+| `GET /v1/operator/agent/runs/:id` | Operator | Redacted conversation, execution metadata, task state and limits |
+| `POST /v1/operator/agent/runs/:id/resume` | Operator | `{}`; explicitly resumes retained pending call; heavy budget |
+| `POST /v1/operator/agent/runs/:id/cancel` | Operator | `{}`; stops future model/tool work; heavy budget |
+
+Task IDs use existing safe identifier characters with a 96-character cap. Reusing an ID with a changed prompt returns `IDEMPOTENCY_CONFLICT`. The host chooses the runtime principal; the client cannot supply identities, tools, session IDs, provider URLs or model configuration in start requests. States are `queued,running,waiting,completed,stopped,failed`, or `interrupted` for stale active state without a live lease. Missing configuration, provider failures and model limits are explicit error codes. See [local AI setup, recovery and bounds](local-ai.md).

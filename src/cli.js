@@ -7,6 +7,8 @@ import { createGatewayServer } from './server.js';
 import { Metrics } from './telemetry.js';
 import { attachMcp } from './mcp.js';
 import { assert } from './util.js';
+import { AgentRuntime } from './agent-runtime.js';
+import { configuredOllama } from './ollama.js';
 
 try {
   const command = process.argv[2] ?? 'serve';
@@ -35,12 +37,14 @@ try {
       assert(credentials.every(c => /^[a-f0-9]{64}$/.test(c.token ?? '')), 'TOKENS_REQUIRED');
       const host = process.env.GATEWAY_HOST ?? '127.0.0.1', port = Number(process.env.GATEWAY_PORT ?? 8787);
       assert(Number.isSafeInteger(port) && port > 0 && port <= 65535, 'INVALID_PORT');
-      const server = createGatewayServer({ gateway, credentials, metrics });
+      const agentRuntime = new AgentRuntime({ gateway, provider: configuredOllama() });
+      const server = createGatewayServer({ gateway, credentials, metrics, agentRuntime });
       server.on('error', () => { console.error('Gateway could not start. Check host, port and storage configuration.'); store.close(); process.exitCode = 1; });
       server.listen(port, host, () => console.log(`Gateway ready: http://${host}:${port}\nDemo mode: publishing and payments are simulated. Open the dashboard with the operator token in .env.`));
       let stopping = false;
       const stop = () => {
         if (stopping) return; stopping = true;
+        agentRuntime.close();
         server.close(() => { store.close(); process.exitCode = 0; });
         server.closeIdleConnections();
         setTimeout(() => process.exit(1), 65000).unref();

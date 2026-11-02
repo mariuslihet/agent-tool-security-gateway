@@ -26,9 +26,26 @@ export class Store {
         code TEXT, at INTEGER NOT NULL, session TEXT, duration REAL, status TEXT);
         CREATE INDEX IF NOT EXISTS audit_tenant_seq ON audit_index(tenant,seq DESC);
         CREATE INDEX IF NOT EXISTS audit_tenant_time ON audit_index(tenant,at);
-        CREATE INDEX IF NOT EXISTS sessions_tenant ON sessions(tenant);`);
+        CREATE INDEX IF NOT EXISTS sessions_tenant ON sessions(tenant);
+        CREATE TABLE IF NOT EXISTS incidents (id TEXT PRIMARY KEY, tenant TEXT NOT NULL, fingerprint TEXT NOT NULL,
+          state TEXT NOT NULL, version INTEGER NOT NULL, updated INTEGER NOT NULL, data TEXT NOT NULL, UNIQUE(tenant,fingerprint));
+        CREATE INDEX IF NOT EXISTS incidents_tenant_state ON incidents(tenant,state);
+        CREATE TABLE IF NOT EXISTS safety_holds (tenant TEXT PRIMARY KEY, data TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS request_index (session TEXT NOT NULL,id TEXT NOT NULL,tenant TEXT NOT NULL,
+          principal TEXT NOT NULL,tool_hash TEXT NOT NULL,status TEXT NOT NULL,created INTEGER NOT NULL,code TEXT,PRIMARY KEY(session,id));
+        CREATE INDEX IF NOT EXISTS request_tenant ON request_index(tenant,status);
+        CREATE TABLE IF NOT EXISTS alert_rules (id TEXT PRIMARY KEY,tenant TEXT NOT NULL,data TEXT NOT NULL);
+        CREATE INDEX IF NOT EXISTS alert_rules_tenant ON alert_rules(tenant);
+        CREATE TABLE IF NOT EXISTS console_alerts (id TEXT PRIMARY KEY,tenant TEXT NOT NULL,rule_id TEXT NOT NULL,
+          rule_version INTEGER NOT NULL,state TEXT NOT NULL,version INTEGER NOT NULL,data TEXT NOT NULL,UNIQUE(tenant,rule_id,rule_version));
+        CREATE INDEX IF NOT EXISTS alerts_tenant ON console_alerts(tenant,state);
+        CREATE TABLE IF NOT EXISTS scoped_holds (tenant TEXT NOT NULL,kind TEXT NOT NULL,target TEXT NOT NULL,data TEXT NOT NULL,PRIMARY KEY(tenant,kind,target));
+        CREATE TABLE IF NOT EXISTS agent_runs (id TEXT PRIMARY KEY,tenant TEXT NOT NULL,principal TEXT NOT NULL,data TEXT NOT NULL);
+        CREATE INDEX IF NOT EXISTS agent_runs_tenant ON agent_runs(tenant);
+        CREATE TABLE IF NOT EXISTS agent_run_locks (id TEXT PRIMARY KEY,owner TEXT NOT NULL,expires INTEGER NOT NULL);`);
       this.transaction(() => {
         for (const row of this.db.prepare('SELECT seq,event FROM audit WHERE seq NOT IN (SELECT seq FROM audit_index)').iterate()) this.#index(row.seq, JSON.parse(row.event));
+        for (const row of this.db.prepare('SELECT r.session,r.id FROM requests r WHERE NOT EXISTS (SELECT 1 FROM request_index i WHERE i.session=r.session AND i.id=r.id)').iterate()) this.#indexRequest(this.request(row.session, row.id));
       });
     } catch (error) { this.db.close(); throw error; }
   }
@@ -56,6 +73,33 @@ export class Store {
   }
   saveRequest(r) {
     this.db.prepare('INSERT INTO requests VALUES (?,?,?) ON CONFLICT(session,id) DO UPDATE SET data=excluded.data').run(r.session, r.id, seal(this.encryptionKey, r));
+    this.#indexRequest(r);
+  }
+  #indexRequest(r) {
+    const session = this.session(r.session); assert(session, 'STORAGE_INTEGRITY_FAILURE');
+    this.db.prepare(`INSERT INTO request_index VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(session,id) DO UPDATE SET status=excluded.status,code=excluded.code`)
+      .run(r.session, r.id, session.tenant, session.principal, digest(r.tool), r.status, r.created, r.result?.code ?? null);
+  }
+  requestPage(tenant, { limit = 25, cursor, status, tool, search } = {}) {
+    assert(Number.isSafeInteger(limit) && limit > 0 && limit <= 100, 'INVALID_QUERY');
+    if (status !== undefined) assert(['pending', 'running', 'completed', 'denied', 'indeterminate', 'output_blocked'].includes(status), 'INVALID_QUERY');
+    if (tool !== undefined) assert(typeof tool === 'string' && /^[a-z][a-z0-9_.-]{0,95}$/.test(tool), 'INVALID_QUERY');
+    if (search !== undefined) assert(typeof search === 'string' && search.length <= 128, 'INVALID_QUERY');
+    const scope = `requests:${tenant}:${digest({ status: status ?? null, tool: tool ?? null, search: search ?? null })}`;
+    const snapshot = cursor ? this.#readCursor(scope, cursor) : { ceiling: this.db.prepare('SELECT MAX(rowid) AS n FROM request_index WHERE tenant=?').get(tenant).n ?? 0 };
+    const where = ['tenant=?', 'rowid<=?', 'rowid<?'], values = [tenant, snapshot.ceiling, snapshot.before ?? snapshot.ceiling + 1];
+    if (status) { where.push('status=?'); values.push(status); }
+    if (tool) { where.push('tool_hash=?'); values.push(digest(tool)); }
+    if (search) { where.push('(instr(lower(id),lower(?))>0 OR instr(lower(session),lower(?))>0 OR instr(lower(principal),lower(?))>0)'); values.push(search, search, search); }
+    const rows = this.db.prepare(`SELECT rowid,* FROM request_index WHERE ${where.join(' AND ')} ORDER BY rowid DESC LIMIT ?`).all(...values, limit + 1);
+    const more = rows.length > limit; if (more) rows.pop();
+    const items = rows.map(row => {
+      const r = this.request(row.session, row.id), s = this.session(row.session);
+      assert(s && r && s.tenant === tenant && row.tenant === tenant && row.principal === s.principal && row.tool_hash === digest(r.tool)
+        && row.status === r.status && row.created === r.created && row.code === (r.result?.code ?? null), 'STORAGE_INTEGRITY_FAILURE');
+      return { request: r, session: s };
+    });
+    return { items, nextCursor: more ? this.#cursor(scope, { before: rows.at(-1).rowid, ceiling: snapshot.ceiling }) : null };
   }
   pending(tenant, limit = 100) {
     const rows = this.db.prepare('SELECT r.session,r.id,r.data,s.data AS session_data FROM requests r JOIN sessions s ON s.id=r.session WHERE s.tenant=? ORDER BY r.rowid DESC').iterate(tenant);

@@ -7,10 +7,103 @@ import { createGatewayServer } from '../src/server.js';
 import { validatePolicyDocument, previewPolicy } from '../src/policy-lab.js';
 import { Policy } from '../src/policy.js';
 import { digest } from '../src/util.js';
+import { AgentRuntime } from '../src/agent-runtime.js';
 
-async function host(t) {
+test('real-agent API isolates operator conversations and rejects forged runtime context', async t => {
+  const f = await host(t, async () => ({ role: 'assistant', content: 'Provider-generated unit test reply' }));
+  const config = await (await f.request('/v1/operator/agent/config')).json(); assert.equal(config.configured, true); assert.ok(!JSON.stringify(config).includes('token'));
+  for (const role of ['viewer', 'agent']) { assert.equal((await f.request('/v1/operator/agent/runs', role, { id: 'test', prompt: 'Hello' })).status, 403); assert.equal((await f.request('/v1/operator/agent/runs', role)).status, 403); }
+  assert.equal((await f.request('/v1/operator/agent/runs', 'operator', { id: 'test', prompt: 'Hello', principal: 'other-agent' })).status, 400);
+  assert.equal((await f.request('/v1/operator/agent/runs', 'operator', { id: 'test', prompt: 'Hello' })).status, 202);
+  await f.agentRuntime.wait('demo', 'test'); const result = await (await f.request('/v1/operator/agent/runs/test', 'operator')).json(); assert.equal(result.state, 'completed'); assert.equal(result.conversation.at(-1).text, 'Provider-generated unit test reply');
+  assert.equal((await f.request('/v1/operator/agent/runs/test', 'viewer')).status, 403);
+  assert.equal((await f.request('/v1/operator/agent/runs', 'operator', { id: 'test', prompt: 'Changed' })).status, 400);
+});
+
+test('scoped containment API enforces roles, tenant ownership and exact revision release before execution resumes', async t => {
+  const f = await host(t), input = { kind: 'session', target: f.sessionId, expectedRevision: 0, durationMinutes: 15, reason: 'Investigate test task only' };
+  for (const role of ['viewer', 'agent']) assert.equal((await f.request('/v1/operator/containment/hold', role, input)).status, 403);
+  assert.equal((await f.request('/v1/operator/containment/hold', 'operator', { ...input, bypass: true })).status, 400);
+  const response = await f.request('/v1/operator/containment/hold', 'operator', input); assert.equal(response.status, 200); const held = await response.json(); assert.equal(held.active, true);
+  assert.equal((await f.run('knowledge.read', { document: 'handbook' }, 'held')).code, 'SESSION_QUARANTINED');
+  assert.equal((await (await f.request('/v1/operator/containment')).json()).items.length, 1);
+  assert.equal((await (await f.request('/v1/operator/containment', 'other')).json()).items.length, 0);
+  assert.equal((await f.request('/v1/operator/containment/target?kind=session&target=' + f.sessionId, 'other')).status, 400);
+  assert.equal((await f.request('/v1/operator/containment/target?kind=session&target=' + f.sessionId)).status, 200);
+  const body = { kind: 'session', target: f.sessionId, expectedRevision: held.revision, reason: 'Review complete in test' };
+  assert.equal((await f.request('/v1/operator/containment/release', 'viewer', body)).status, 403);
+  assert.equal((await f.request('/v1/operator/containment/release', 'operator', { ...body, expectedRevision: 0 })).status, 400);
+  assert.equal((await f.request('/v1/operator/containment/release', 'operator', body)).status, 200);
+  assert.equal((await f.request('/v1/operator/containment/release', 'operator', body)).status, 409);
+  assert.equal((await f.run('knowledge.read', { document: 'handbook' }, 'held')).code, 'OK');
+});
+
+test('tool hold API rejects unregistered targets, isolates other tenants and preserves other tools', async t => {
+  const f = await host(t), input = { kind: 'tool', target: 'knowledge.read', expectedRevision: 0, durationMinutes: 1, reason: 'Tool maintenance test' };
+  assert.equal((await f.request('/v1/operator/containment/hold', 'operator', { ...input, target: 'unknown.tool' })).status, 400);
+  assert.equal((await f.request('/v1/operator/containment/hold', 'operator', input)).status, 200);
+  assert.equal((await f.run('knowledge.read', { document: 'handbook' })).code, 'TOOL_PAUSED'); assert.equal((await f.run('text.encode', { text: 'safe' })).code, 'OK');
+  assert.equal((await (await f.request('/v1/operator/containment/target?kind=tool&target=knowledge.read', 'other')).json()).revision, 0);
+  assert.equal((await f.request('/v1/operator/containment/target?kind=tool&target=knowledge.read&extra=1')).status, 400);
+});
+
+test('workspace health is read-only, tenant-scoped, payload-free and uses the heavy operation budget', async t => {
+  const f = await host(t); await f.run('report.publish', { ...report, body: 'private-health-api-5312' });
+  const count = f.store.db.prepare('SELECT COUNT(*) AS n FROM audit').get().n;
+  assert.equal((await f.request('/v1/operator/workspace-health', 'agent')).status, 403);
+  const response = await f.request('/v1/operator/workspace-health'); assert.equal(response.status, 200); const health = await response.json(); assert.equal(health.checks.find(c => c.id === 'pending').count, 1); assert.ok(!JSON.stringify(health).includes('private-health-api-5312'));
+  assert.equal((await (await f.request('/v1/operator/workspace-health', 'other')).json()).coverage.sessionSample, 0);
+  assert.equal(f.store.db.prepare('SELECT COUNT(*) AS n FROM audit').get().n, count);
+  for (let i = 0; i < 5; i++) assert.equal((await f.request('/v1/operator/workspace-health')).status, 200);
+  assert.equal((await f.request('/v1/operator/workspace-health')).status, 429);
+});
+
+test('request investigation API reserves argument inspection for operators and hides other tenants', async t => {
+  const f = await host(t); await f.run('text.encode', { text: 'private-payload-7317' }, 'inspect-api');
+  const root = `/v1/operator/requests/${f.sessionId}/inspect-api`;
+  for (const endpoint of ['/v1/operator/requests', root]) {
+    const r = await f.request(endpoint); assert.equal(r.status, 200); assert.ok(!(await r.text()).includes('private-payload-7317'));
+    assert.equal((await f.request(endpoint, 'agent')).status, 403);
+  }
+  assert.equal((await f.request(root, 'other')).status, 400);
+  assert.equal((await f.request(root + '/inspect', 'viewer', { reason: 'Investigate this call' })).status, 403);
+  assert.equal((await f.request(root + '/inspect', 'agent', { reason: 'Investigate this call' })).status, 403);
+  assert.equal((await f.request(root + '/inspect', 'operator', { reason: 'x' })).status, 400);
+  assert.equal((await f.request(root + '/inspect', 'operator', { reason: 'Investigate this call', output: true })).status, 400);
+  const inspection = await f.request(root + '/inspect', 'operator', { reason: 'Investigate this call' }); assert.equal(inspection.status, 200); assert.equal((await inspection.json()).arguments.text, 'private-payload-7317');
+  assert.equal((await f.request('/v1/operator/requests?limit=101')).status, 400);
+});
+
+test('alert APIs enforce reader/operator roles, strict bodies, tenant isolation and optimistic conflicts', async t => {
+  const f = await host(t), input = { expectedVersion: 0, title: 'HTTP denial alert', category: 'denials', threshold: 1, windowMinutes: 10, enabled: true, reason: 'Monitor this local test' };
+  assert.equal((await f.request('/v1/operator/alert-rules', 'viewer', input)).status, 403);
+  assert.equal((await f.request('/v1/operator/alert-rules', 'agent', input)).status, 403);
+  assert.equal((await f.request('/v1/operator/alert-rules', 'operator', { ...input, webhook: 'https://example.com' })).status, 400);
+  const created = await (await f.request('/v1/operator/alert-rules', 'operator', input)).json(); assert.ok(created.id);
+  assert.equal((await f.request('/v1/operator/alert-rules', 'operator', { ...input, id: created.id })).status, 409);
+  await f.run('unknown.tool', {}, 'denial');
+  const page = await (await f.request('/v1/operator/alerts')).json(); assert.equal(page.items.length, 1); const alert = page.items[0];
+  assert.equal((await (await f.request('/v1/operator/alerts', 'other')).json()).items.length, 0);
+  assert.equal((await (await f.request('/v1/operator/alert-rules', 'other')).json()).items.length, 0);
+  const body = { expectedVersion: alert.version, state: 'resolved', reason: 'Investigated fixture only' }, url = '/v1/operator/alerts/' + alert.id;
+  assert.equal((await f.request(url, 'viewer', body)).status, 403); assert.equal((await f.request(url, 'operator', body)).status, 200); assert.equal((await f.request(url, 'operator', body)).status, 409);
+  assert.equal((await f.request('/v1/operator/alerts?state=arbitrary')).status, 400);
+});
+
+test('workspace report API is read-only by role, metadata-only, audited and separately rate-limited', async t => {
+  const f = await host(t); await f.run('text.encode', { text: 'private-report-body-5627' }, 'report');
+  assert.equal((await f.request('/v1/operator/report', 'agent', {})).status, 403);
+  assert.equal((await f.request('/v1/operator/report', 'viewer', { includeOutputs: true })).status, 400);
+  const response = await f.request('/v1/operator/report', 'viewer', {}); assert.equal(response.status, 200); const body = await response.json(); assert.ok(!JSON.stringify(body).includes('private-report-body-5627')); assert.equal(body.privacy.arguments, false);
+  for (let i = 0; i < 4; i++) assert.equal((await f.request('/v1/operator/report', 'viewer', {})).status, 200);
+  assert.equal((await f.request('/v1/operator/report', 'viewer', {})).status, 429);
+  assert.ok(f.store.events('demo').some(e => e.type === 'workspace.report_generated'));
+});
+
+async function host(t, complete) {
   const f = fixture(t), tokens = Object.fromEntries(['operator', 'viewer', 'agent', 'other'].map(role => [role, randomBytes(32).toString('hex')]));
-  const server = createGatewayServer({ gateway: f.gateway, credentials: [
+  const agentRuntime = complete ? new AgentRuntime({ gateway: f.gateway, provider: { model: 'test-model', complete, check: async () => ({ ready: true }) } }) : undefined;
+  const server = createGatewayServer({ gateway: f.gateway, agentRuntime, credentials: [
     { token: tokens.operator, principal: 'reviewer', tenant: 'demo', role: 'operator' },
     { token: tokens.viewer, principal: 'observer', tenant: 'demo', role: 'viewer' },
     { token: tokens.agent, principal: 'demo-agent', tenant: 'demo', role: 'agent' },
@@ -20,7 +113,7 @@ async function host(t) {
   t.after(async () => { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); });
   const base = `http://127.0.0.1:${server.address().port}`;
   const request = (path, role = 'viewer', body) => fetch(base + path, { method: body === undefined ? 'GET' : 'POST', headers: { authorization: `Bearer ${tokens[role]}`, ...(body === undefined ? {} : { 'content-type': 'application/json' }) }, body: body === undefined ? undefined : JSON.stringify(body) });
-  return { ...f, request, base };
+  return { ...f, request, base, agentRuntime };
 }
 test('viewer can inspect the control plane but cannot approve, revoke or execute', async t => {
   const f = await host(t), p = await f.run('report.publish', report, 'review');
@@ -148,4 +241,38 @@ test('malformed candidate policies are client errors rather than gateway failure
     const response = await f.request('/v1/operator/policy/preview', 'viewer', { policy, tool: 'knowledge.read', arguments: { document: 'handbook' } });
     assert.equal(response.status, 400); assert.equal((await response.json()).code, 'INVALID_POLICY');
   }
+});
+
+test('incident APIs isolate tenants and reserve workflow mutations for operators', async t => {
+  const f = await host(t); await f.run('vault.read', { record: 'invoice' }); await f.run('report.publish', report);
+  const page = await (await f.request('/v1/operator/incidents')).json(); assert.equal(page.items.length, 1);
+  const record = page.items[0], path = `/v1/operator/incidents/${record.id}`;
+  assert.equal((await f.request(path)).status, 200); assert.equal((await f.request(path, 'other')).status, 400);
+  const update = { expectedVersion: record.version, state: 'acknowledged', reason: 'Reviewing test incident.' };
+  assert.equal((await f.request(path, 'viewer', update)).status, 403);
+  assert.equal((await f.request(path, 'operator', update)).status, 200);
+  const stale = await f.request(path, 'operator', update); assert.equal(stale.status, 409); assert.equal((await stale.json()).code, 'VERSION_CONFLICT');
+  assert.deepEqual((await (await f.request('/v1/operator/incidents', 'other')).json()).items, []);
+});
+test('safety API separates observer access from operator changes and rejects stale resume requests', async t => {
+  const f = await host(t), input = { expectedRevision: 0, scope: 'all', durationMinutes: 15, reason: 'Investigating a synthetic signal.' };
+  assert.equal((await f.request('/v1/operator/safety')).status, 200);
+  assert.equal((await f.request('/v1/operator/safety/pause', 'viewer', input)).status, 403);
+  assert.equal((await f.request('/v1/operator/safety/pause', 'agent', input)).status, 403);
+  const paused = await (await f.request('/v1/operator/safety/pause', 'operator', input)).json(); assert.equal(paused.active, true);
+  assert.equal((await (await f.request('/v1/operator/safety', 'other')).json()).active, false);
+  const body = { id: 'paused-http', tool: 'knowledge.read', arguments: { document: 'handbook' } };
+  assert.equal((await (await f.request(`/v1/sessions/${f.sessionId}/execute`, 'agent', body)).json()).code, 'TENANT_PAUSED');
+  assert.equal((await f.request('/v1/operator/safety/resume', 'operator', { expectedRevision: 999, reason: 'Stale request.' })).status, 409);
+  assert.equal((await f.request('/v1/operator/safety/resume', 'operator', { expectedRevision: paused.revision, reason: 'Investigation complete.' })).status, 200);
+  assert.equal((await (await f.request(`/v1/sessions/${f.sessionId}/execute`, 'agent', body)).json()).status, 'completed');
+});
+test('policy suite API is read-only, bounded and accessible to viewer roles', async t => {
+  const f = await host(t), before = f.store.verifyAudit().count;
+  const cases = [{ id: 'read', tool: 'knowledge.read', arguments: { document: 'handbook' }, expected: { decision: 'allow' } }];
+  const result = await (await f.request('/v1/operator/policy/suite', 'viewer', { cases })).json(); assert.equal(result.passed, 1); assert.equal(result.execution, false);
+  assert.equal(f.store.verifyAudit().count, before);
+  assert.equal((await f.request('/v1/operator/policy/suite', 'agent', { cases })).status, 403);
+  assert.equal((await f.request('/v1/operator/policy/suite', 'viewer', { cases, execute: true })).status, 400);
+  assert.equal((await f.request('/v1/operator/policy/suite', 'viewer', { cases: [] })).status, 400);
 });

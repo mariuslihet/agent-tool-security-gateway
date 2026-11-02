@@ -3,6 +3,10 @@ import { performance } from 'node:perf_hooks';
 import { assert, bounded, digest, freeze, idPattern, toolPattern, jsonClone, GatewayError } from './util.js';
 import { validate } from './schema.js';
 import { inspect, redact } from './scanners.js';
+import { IncidentService, SafetyService } from './operations.js';
+import { AlertService } from './alerts.js';
+import { RequestExplorer } from './investigation.js';
+import { ScopedContainment } from './containment.js';
 
 const fail = (code, extra = {}) => ({ status: 'denied', code, retryable: false, ...extra });
 const secretFinding = f => /PRIVATE_KEY|API_KEY|CREDENTIAL/.test(f);
@@ -12,6 +16,9 @@ export class Gateway {
   #profiles;
   constructor({ store, registry, policy, profiles, clock = Date.now, onEvent = () => {} }) {
     this.store = store; this.registry = registry.lock(); this.policy = policy; this.clock = clock; this.onEvent = onEvent;
+    this.incidents = new IncidentService(store, clock); this.safety = new SafetyService(store, clock);
+    this.alerts = new AlertService(store, clock); this.requests = new RequestExplorer(store, this.registry);
+    this.containment = new ScopedContainment(store, this.registry, clock);
     this.#profiles = new Map();
     for (const raw of profiles) {
       const p = bounded(raw);
@@ -28,7 +35,10 @@ export class Gateway {
     }
   }
   #event(event) {
+    event = { eventId: randomUUID(), at: this.clock(), ...event };
     this.store.append(event);
+    this.incidents.observe(event);
+    this.alerts.observe(event);
     // Observability is best effort; durable audit above is mandatory.
     queueMicrotask(() => { try { Promise.resolve(this.onEvent(freeze(jsonClone(event)))).catch(() => {}); } catch { /* telemetry cannot authorize or change execution */ } });
   }
@@ -47,6 +57,7 @@ export class Gateway {
       status, labels: [...new Set(chain.flatMap(x => x.labels))],
       usage: { calls: s.calls, cost: s.cost, outputBytes: s.outputBytes, active: s.active }, limits: s.limits,
       policyHash: s.policyHash,
+      containment: this.containment.check(tenant, chain, '') ?? null,
       grants: s.grants.map(g => ({ ...g, values: redact(g.values), revoked: Boolean(this.store.db.prepare('SELECT value FROM meta WHERE key=?').get(`revoked:${tenant}:tool:${g.tool}`)) })),
     };
   }
@@ -122,7 +133,10 @@ export class Gateway {
       const code = error instanceof GatewayError ? error.code : 'GATEWAY_UNAVAILABLE';
       const p = this.#profiles.get(principal);
       if (p) {
-        try { this.store.transaction(() => this.#event({ type: 'request.rejected', tenant: p.tenant, principal, code })); }
+        try { this.store.transaction(() => {
+          const owned = typeof sessionId === 'string' && idPattern.test(sessionId) ? this.store.session(sessionId) : null;
+          this.#event({ type: 'request.rejected', tenant: p.tenant, principal, code, ...(owned?.principal === principal && owned.tenant === p.tenant ? { session: owned.id } : {}) });
+        }); }
         catch { return fail('GATEWAY_UNAVAILABLE'); }
       }
       return fail(code);
@@ -188,9 +202,23 @@ export class Gateway {
         return { response: record.result };
       }
     } else {
+      const tenantHold = this.safety.check(s.tenant, this.registry.get(request.tool)?.definition);
+      const hold = tenantHold ? { ...tenantHold, code: 'TENANT_PAUSED' } : this.containment.check(s.tenant, chain, request.tool);
+      if (hold) {
+        this.#event({ type: 'execution.paused', tenant: s.tenant, session: s.id, request: request.id, code: hold.code, ...(hold.scope ? { scope: hold.scope } : { targetKind: hold.kind, target: hold.target, revision: hold.revision }) });
+        return { response: { status: 'paused', ...hold, retryable: true } };
+      }
       assert(chain.every(x => x.calls < x.limits.maxCalls), 'CALL_BUDGET_EXCEEDED');
       for (const x of chain) { x.calls++; this.store.saveSession(x); }
       record = { session: sessionId, id: request.id, tool: request.tool, hash, arguments: request.arguments, status: 'evaluating', created: this.clock(), approval: null, transformed: false };
+    }
+    if (record.status === 'pending') {
+      const tenantHold = this.safety.check(s.tenant, this.registry.get(request.tool)?.definition);
+      const hold = tenantHold ? { ...tenantHold, code: 'TENANT_PAUSED' } : this.containment.check(s.tenant, chain, request.tool);
+      if (hold) {
+        this.#event({ type: 'execution.paused', tenant: s.tenant, session: s.id, request: request.id, code: hold.code, ...(hold.scope ? { scope: hold.scope } : { targetKind: hold.kind, target: hold.target, revision: hold.revision }) });
+        return { response: { status: 'paused', ...hold, retryable: true } };
+      }
     }
     try {
       const tool = this.registry.get(request.tool); assert(tool, 'UNKNOWN_TOOL');

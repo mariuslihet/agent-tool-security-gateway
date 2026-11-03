@@ -1,5 +1,9 @@
 # HTTP API and recovery
 
+Workspace additions: task start and prompt templates accept `toolMode: "workspace"`. It grants only the safe reference tools plus `workspace.search`, `workspace.read` and `workspace.report.save` when configured. `activity.phase`/`activity.tool` in task responses describe persisted progress without arguments or model reasoning. Configuration includes `workspace.configured`. Existing execution/approval/resume endpoints handle all workspace calls; see [workspace semantics](workspace-tools.md).
+
+Task health: `GET /v1/operator/agent/runs/:id/health` is operator-only and accepts no query parameters. It returns a read-only snapshot of budgets, expiry, follow-up blockers, tool restrictions and pending approval metadata without prompts or arguments. It never authorizes execution. SDK: `control.agentHealth(id)`. See [semantics and limits](task-health.md).
+
 Base URL for local development: `http://127.0.0.1:8787`. All `/v1/` endpoints require `Authorization: Bearer <token>`. Agent and operator tokens are separate. All POST bodies require `application/json`; cross-origin requests are rejected. There is no CORS wildcard.
 
 | Method | Route | Role | Purpose |
@@ -118,3 +122,27 @@ New runtime responses use `status: paused`, `retryable: true`, with code `SESSIO
 | `POST /v1/operator/agent/runs/:id/cancel` | Operator | `{}`; stops future model/tool work; heavy budget |
 
 Task IDs use existing safe identifier characters with a 96-character cap. Reusing an ID with a changed prompt returns `IDEMPOTENCY_CONFLICT`. The host chooses the runtime principal; the client cannot supply identities, tools, session IDs, provider URLs or model configuration in start requests. States are `queued,running,waiting,completed,stopped,failed`, or `interrupted` for stale active state without a live lease. Missing configuration, provider failures and model limits are explicit error codes. See [local AI setup, recovery and bounds](local-ai.md).
+
+## Conversation features (0.7)
+
+Start now accepts `{id,prompt,toolMode?}`. `toolMode` is `safe` (new default), `chat_only` or `all`; grants are narrowed when the session is created. Start idempotency also binds the mode. Task responses add `revision`, `toolMode`, `allowedTools`, `userMessages` and `usage` with reporting/timing coverage.
+
+| Method/path | Role | Behavior |
+|---|---|---|
+| `POST /v1/operator/agent/runs/:id/messages` | Operator | `{messageId,prompt,expectedRevision}`; 202 with continued task; heavy budget |
+| `POST /v1/operator/agent/runs/:id/export` | Operator | `{format: 'json'\|'markdown'}`; redacted `content`, `contentHash`, `hashAlgorithm`; heavy budget |
+
+Follow-ups preserve the original session and all task budgets and permissions. Only completed, current tasks with remaining turns can continue. New messages with stale revisions return 409. Duplicate message IDs are idempotent only for the same prompt. Bodies cannot change identities, tools or model configuration. Export cannot include system context or raw tool arguments; unsupported formats and unknown fields are rejected. See [semantics and privacy limits](conversations.md).
+
+## Task library and templates (0.8)
+
+All endpoints require operator access. `GET /v1/operator/agent/runs` now accepts `search,state,archive,pinned,limit,offset` and returns `items,total,limit,offset,nextOffset`. Defaults are empty search, all states, active archive view, all pins, limit 25 and offset 0. Limit is 1–100 and offset 0–100. Archive values are `active,archived,all`; pin values are `all,true,false`. Summaries and details add `organization` with independent revision, title, tags, flags and update time.
+
+| Method/path | Body/query | Result |
+|---|---|---|
+| `POST /v1/operator/agent/runs/:id/organize` | `{expectedRevision,title,tags,pinned,archived}` | Updated encrypted organization; does not update conversation revision |
+| `GET /v1/operator/agent/templates` | Optional `enabled=all\|true\|false` | Private redacted templates and limits |
+| `GET /v1/operator/agent/templates/:id` | No query fields | One private redacted template |
+| `POST /v1/operator/agent/templates` | `{id?,expectedRevision,title,prompt,toolMode,enabled}` | Create/update template; version 0 and no ID create a new record |
+
+These operations use the ordinary API rate budget and never start inference. Unknown fields are rejected. Revision conflicts return 409; invalid input, nonterminal archive attempts and template limits return 400; role failures return 403; corrupt/unavailable storage returns 503. Archived tasks must be restored before new follow-ups. See [search, archive and template semantics](task-library.md).

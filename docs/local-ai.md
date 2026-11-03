@@ -1,5 +1,9 @@
 # Real local AI with Ollama
 
+For real local document work, see [workspace tools](workspace-tools.md). Select Workspace mode to search/read reviewed text and create a local report after exact-request approval. Safe mode retains its original grants.
+
+Version 0.7 adds [follow-up messages, per-task tool modes, usage statistics and conversation exports](conversations.md). New tasks default to the safe tool set. The original 0.6 workflow below still describes starting independent tasks; a completed task can now also be continued through its separate follow-up form without resetting its session or budgets.
+
 The AI Agent page uses a real local model. It sends your task and tool definitions to Ollama, passes model-proposed function calls through the gateway, then returns permitted tool results to the model for its generated response. There is no canned-response fallback. Existing dashboard sample data is separate and never drives model answers.
 
 The implementation follows Ollama's [native chat API](https://docs.ollama.com/api/chat) and [tool-calling protocol](https://docs.ollama.com/capabilities/tool-calling). It uses Node's built-in HTTP client, without adding runtime dependencies.
@@ -24,7 +28,7 @@ The configuration check verifies the installed model advertises function-tool su
 
 ## Task workflow
 
-Each prompt starts a new gateway session and task. The conversation displayed for that task includes its user prompt, model-generated text and a gateway execution trace. Separate tasks do not share chat memory. A completed task can be reopened from encrypted history. To ask another question, start another task.
+**Start new AI task** creates a new gateway session and task. The conversation displayed for that task includes its user prompt, model-generated text and a gateway execution trace. Separate tasks do not share chat memory. A completed task can be reopened from encrypted history and continued through **Ask a follow-up** while its original session and task budgets remain valid.
 
 Tools use stable aliases in model context because provider function-name restrictions differ from registry names. The host resolves aliases against the session's pinned catalog. Model output cannot choose an actor, tenant, arbitrary function, shell command or adapter. Schema checks, capability grants, policy, provenance, budgets, approvals, revocations and containment remain in the gateway.
 

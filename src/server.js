@@ -44,7 +44,7 @@ function queryOptions(params, allowed) {
   const values = {};
   for (const [key, value] of params) {
     assert(allowed.includes(key) && !Object.hasOwn(values, key), 'INVALID_QUERY');
-    if (['limit', 'from', 'to'].includes(key)) { assert(/^\d{1,16}$/.test(value), 'INVALID_QUERY'); values[key] = Number(value); }
+    if (['limit', 'from', 'to', 'offset'].includes(key)) { assert(/^\d{1,16}$/.test(value), 'INVALID_QUERY'); values[key] = Number(value); }
     else values[key] = value;
   }
   return values;
@@ -97,15 +97,29 @@ export function createGatewayServer({ gateway, credentials, metrics, agentRuntim
         operator(); heavy(); shape(await readBody(req, maxBodyBytes), []); assert(agentRuntime, 'LLM_NOT_CONFIGURED'); send(200, await agentRuntime.check()); return;
       }
       if (path === '/v1/operator/agent/runs' && req.method === 'GET') {
-        operator(); queryOptions(url.searchParams, []); assert(agentRuntime, 'LLM_NOT_CONFIGURED'); send(200, agentRuntime.list(identity.tenant)); return;
+        operator(); assert(agentRuntime, 'LLM_NOT_CONFIGURED'); send(200, agentRuntime.list(identity.tenant, queryOptions(url.searchParams, ['search', 'state', 'archive', 'pinned', 'limit', 'offset']))); return;
       }
       if (path === '/v1/operator/agent/runs' && req.method === 'POST') {
-        operator(); heavy(); const body = await readBody(req, maxBodyBytes); shape(body, ['id', 'prompt'], ['id', 'prompt']); assert(agentRuntime, 'LLM_NOT_CONFIGURED'); send(202, agentRuntime.start(identity.tenant, body)); return;
+        operator(); heavy(); const body = await readBody(req, maxBodyBytes); shape(body, ['id', 'prompt', 'toolMode'], ['id', 'prompt']); assert(agentRuntime, 'LLM_NOT_CONFIGURED'); send(202, agentRuntime.start(identity.tenant, body)); return;
       }
-      const agentRun = /^\/v1\/operator\/agent\/runs\/([a-zA-Z0-9_-]{1,96})(?:\/(resume|cancel))?$/.exec(path);
+      if (path === '/v1/operator/agent/templates' && req.method === 'GET') {
+        operator(); assert(agentRuntime, 'LLM_NOT_CONFIGURED'); send(200, agentRuntime.library.templates(identity.tenant, queryOptions(url.searchParams, ['enabled']))); return;
+      }
+      if (path === '/v1/operator/agent/templates' && req.method === 'POST') {
+        operator(); assert(agentRuntime, 'LLM_NOT_CONFIGURED'); const body = await readBody(req, maxBodyBytes); shape(body, ['id', 'expectedRevision', 'title', 'prompt', 'toolMode', 'enabled'], ['expectedRevision', 'title', 'prompt', 'toolMode', 'enabled']);
+        send(200, agentRuntime.library.saveTemplate(identity.tenant, body, identity.principal)); return;
+      }
+      const templatePath = /^\/v1\/operator\/agent\/templates\/([a-zA-Z0-9_-]{1,96})$/.exec(path);
+      if (templatePath && req.method === 'GET') { operator(); queryOptions(url.searchParams, []); assert(agentRuntime, 'LLM_NOT_CONFIGURED'); send(200, agentRuntime.library.template(identity.tenant, templatePath[1])); return; }
+      const agentRun = /^\/v1\/operator\/agent\/runs\/([a-zA-Z0-9_-]{1,96})(?:\/(resume|cancel|messages|export|organize|health))?$/.exec(path);
+      if (agentRun?.[2] === 'health') { operator(); assert(req.method === 'GET', 'INVALID_REQUEST'); queryOptions(url.searchParams, []); assert(agentRuntime, 'LLM_NOT_CONFIGURED'); send(200, agentRuntime.health(identity.tenant, agentRun[1])); return; }
       if (agentRun && req.method === 'GET' && !agentRun[2]) { operator(); queryOptions(url.searchParams, []); assert(agentRuntime, 'LLM_NOT_CONFIGURED'); send(200, agentRuntime.get(identity.tenant, agentRun[1])); return; }
       if (agentRun && req.method === 'POST' && agentRun[2]) {
-        operator(); heavy(); shape(await readBody(req, maxBodyBytes), []); assert(agentRuntime, 'LLM_NOT_CONFIGURED');
+        operator(); heavy(); const body = await readBody(req, maxBodyBytes); assert(agentRuntime, 'LLM_NOT_CONFIGURED');
+        if (agentRun[2] === 'messages') { shape(body, ['messageId', 'prompt', 'expectedRevision'], ['messageId', 'prompt', 'expectedRevision']); send(202, agentRuntime.followUp(identity.tenant, agentRun[1], body, identity.principal)); return; }
+        if (agentRun[2] === 'export') { shape(body, ['format'], ['format']); send(200, agentRuntime.export(identity.tenant, agentRun[1], body, identity.principal)); return; }
+        if (agentRun[2] === 'organize') { shape(body, ['expectedRevision', 'title', 'tags', 'pinned', 'archived'], ['expectedRevision', 'title', 'tags', 'pinned', 'archived']); send(200, agentRuntime.library.organize(identity.tenant, agentRun[1], body, identity.principal)); return; }
+        shape(body, []);
         send(200, agentRun[2] === 'resume' ? agentRuntime.resume(identity.tenant, agentRun[1]) : agentRuntime.cancel(identity.tenant, agentRun[1])); return;
       }
       if (req.method === 'GET' && path === '/v1/tools') { agent(); send(200, { tools: gateway.registry.list() }); return; }

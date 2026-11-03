@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { createDemo } from './demo.js';
@@ -23,7 +23,9 @@ try {
     const path = resolve(process.env.GATEWAY_DB ?? 'var/gateway.sqlite');
     mkdirSync(resolve(path, '..'), { recursive: true, mode: 0o700 });
     const metrics = new Metrics();
-    const { store, gateway } = createDemo({ path, masterKey, onEvent: metrics.record });
+    const workspace = resolve(process.env.GATEWAY_WORKSPACE_ROOT ?? 'workspace');
+    const workspaceEnabled = command !== 'verify-audit' && process.env.GATEWAY_WORKSPACE_ROOT !== 'off' && (Boolean(process.env.GATEWAY_WORKSPACE_ROOT) || existsSync(workspace));
+    const { store, gateway } = createDemo({ path, masterKey, onEvent: metrics.record, workspaceRoot: workspaceEnabled ? workspace : undefined });
     if (command === 'verify-audit') { console.log(JSON.stringify(store.verifyAudit(), null, 2)); store.close(); }
     else if (command === 'mcp') {
       attachMcp({ gateway, principal: 'demo-agent' });

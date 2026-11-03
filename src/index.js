@@ -14,4 +14,6 @@ export { RequestExplorer, buildWorkspaceReport } from './investigation.js';
 export { ScopedContainment, CONTAINMENT_LIMITS } from './containment.js';
 export { workspaceHealth } from './workspace-health.js';
 export { OllamaProvider, configuredOllama } from './ollama.js';
-export { AgentRuntime, AGENT_LIMITS } from './agent-runtime.js';
+export { AgentRuntime, AGENT_LIMITS, TOOL_MODES } from './agent-runtime.js';
+export { TaskLibrary, TASK_LIBRARY_LIMITS } from './task-library.js';
+export { registerWorkspaceTools, WORKSPACE_LIMITS } from './workspace-tools.js';

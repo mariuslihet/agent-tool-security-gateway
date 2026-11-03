@@ -76,6 +76,10 @@ export class Gateway {
   #checkRevocation(tenant, type, value) {
     assert(!this.store.db.prepare('SELECT value FROM meta WHERE key=?').get(`revoked:${tenant}:${type}:${value}`), 'REVOKED');
   }
+  createRestrictedSession(principal, toolNames) {
+    assert(Array.isArray(toolNames) && toolNames.every(name => typeof name === 'string' && this.registry.get(name)), 'INVALID_TOOL_SELECTION');
+    return this.createSession(principal, { grants: jsonClone(this.#profile(principal).grants).filter(g => toolNames.includes(g.tool)) });
+  }
   createSession(principal, { parentId, grants, limits } = {}) {
     const p = this.#profile(principal);
     return this.store.transaction(() => {
@@ -83,7 +87,8 @@ export class Gateway {
       if (parentId) { parent = this.#session(parentId, principal); assert(this.#lineage(parent).length < 16, 'DELEGATION_DEPTH'); }
       const selected = grants ? bounded(grants) : jsonClone(parent?.grants ?? p.grants);
       const ceiling = parent?.grants ?? p.grants;
-      assert(Array.isArray(selected) && selected.length > 0, 'CAPABILITY_ESCALATION');
+      // An empty capability set is a valid attenuation for chat-only sessions.
+      assert(Array.isArray(selected), 'CAPABILITY_ESCALATION');
       for (const g of selected) assert(ceiling.some(c => {
         if (c.tool !== g.tool || c.fingerprint !== g.fingerprint || !Array.isArray(g.origins) || !g.values || typeof g.values !== 'object' || Array.isArray(g.values)) return false;
         if (!g.origins.every(o => c.origins.includes(o))) return false;

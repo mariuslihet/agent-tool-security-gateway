@@ -38,10 +38,17 @@ export class ControlPlaneClient extends GatewayClient {
   agentConfiguration() { return this.request('/v1/operator/agent/config', undefined, 'GET'); }
   checkAgent() { return this.request('/v1/operator/agent/check', {}); }
   startAgent(input) { return this.request('/v1/operator/agent/runs', input); }
-  agentRuns() { return this.request('/v1/operator/agent/runs', undefined, 'GET'); }
+  agentRuns(options) { return this.request(query('/v1/operator/agent/runs', options), undefined, 'GET'); }
   agentRun(id) { return this.request(`/v1/operator/agent/runs/${encodeURIComponent(id)}`, undefined, 'GET'); }
+  agentHealth(id) { return this.request(`/v1/operator/agent/runs/${encodeURIComponent(id)}/health`, undefined, 'GET'); }
   resumeAgent(id) { return this.request(`/v1/operator/agent/runs/${encodeURIComponent(id)}/resume`, {}); }
   cancelAgent(id) { return this.request(`/v1/operator/agent/runs/${encodeURIComponent(id)}/cancel`, {}); }
+  followUpAgent(id, input) { return this.request(`/v1/operator/agent/runs/${encodeURIComponent(id)}/messages`, input); }
+  exportAgent(id, format = 'json') { return this.request(`/v1/operator/agent/runs/${encodeURIComponent(id)}/export`, { format }); }
+  organizeAgent(id, input) { return this.request(`/v1/operator/agent/runs/${encodeURIComponent(id)}/organize`, input); }
+  taskTemplates(options) { return this.request(query('/v1/operator/agent/templates', options), undefined, 'GET'); }
+  taskTemplate(id) { return this.request(`/v1/operator/agent/templates/${encodeURIComponent(id)}`, undefined, 'GET'); }
+  saveTaskTemplate(input) { return this.request('/v1/operator/agent/templates', input); }
   requests(options) { return this.request(query('/v1/operator/requests', options), undefined, 'GET'); }
   requestDetail(sessionId, requestId) { return this.request(`/v1/operator/requests/${encodeURIComponent(sessionId)}/${encodeURIComponent(requestId)}`, undefined, 'GET'); }
   inspectArguments(sessionId, requestId, reason) { return this.request(`/v1/operator/requests/${encodeURIComponent(sessionId)}/${encodeURIComponent(requestId)}/inspect`, { reason }); }

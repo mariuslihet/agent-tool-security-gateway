@@ -9,6 +9,56 @@ import { Policy } from '../src/policy.js';
 import { digest } from '../src/util.js';
 import { AgentRuntime } from '../src/agent-runtime.js';
 
+test('task health API is operator-only, rejects parameters and remains read-only', async t => {
+  const f = await host(t, async () => ({ role: 'assistant', content: 'Answer' })); f.agentRuntime.start('demo', { id: 'health-api', prompt: 'Private prompt' }); await f.agentRuntime.wait('demo', 'health-api');
+  const path = '/v1/operator/agent/runs/health-api/health', before = f.store.verifyAudit().count;
+  for (const role of ['viewer', 'agent', 'other']) assert.equal((await f.request(path, role)).status, 403);
+  const response = await f.request(path, 'operator'); assert.equal(response.status, 200); const h = await response.json(); assert.equal(h.id, 'health-api'); assert.equal(h.followUp.available, true); assert.equal(h.budgets.modelTurns.remaining, 5); assert.ok(!JSON.stringify(h).includes('Private prompt'));
+  assert.equal((await f.request(path + '?execute=true', 'operator')).status, 400); assert.equal((await f.request(path, 'operator', {})).status, 400); assert.equal(f.store.verifyAudit().count, before);
+});
+
+test('task organization API enforces operator access, independent revisions and archive history filters', async t => {
+  const f = await host(t, async () => ({ role: 'assistant', content: 'A real-runtime test answer' })); f.agentRuntime.start('demo', { id: 'library-api', prompt: 'Hello' }); const run = await f.agentRuntime.wait('demo', 'library-api');
+  const url = '/v1/operator/agent/runs/library-api/organize', body = { expectedRevision: 0, title: 'Arithmetic review', tags: ['math'], pinned: true, archived: true };
+  for (const role of ['viewer', 'agent']) assert.equal((await f.request(url, role, body)).status, 403);
+  assert.equal((await f.request(url, 'operator', { ...body, toolMode: 'all' })).status, 400);
+  assert.equal((await f.request(url, 'operator', body)).status, 200); assert.equal((await f.request(url, 'operator', body)).status, 409);
+  const visible = await (await f.request('/v1/operator/agent/runs', 'operator')).json(); assert.equal(visible.total, 0);
+  const archived = await (await f.request('/v1/operator/agent/runs?archive=archived&search=MATH&pinned=true&state=completed&limit=1&offset=0', 'operator')).json(); assert.equal(archived.total, 1); assert.equal(archived.items[0].organization.title, 'Arithmetic review'); assert.equal(archived.items[0].revision, run.revision);
+  assert.equal((await f.request('/v1/operator/agent/runs?offset=-1', 'operator')).status, 400); assert.equal((await f.request('/v1/operator/agent/runs?archive=deleted', 'operator')).status, 400);
+});
+
+test('prompt template APIs protect private prompts and reject unknown fields without starting tasks', async t => {
+  const f = await host(t, async () => ({ role: 'assistant', content: 'Must not be requested' })), input = { expectedRevision: 0, title: 'Test template', prompt: 'Use the arithmetic tool.', toolMode: 'safe', enabled: true };
+  for (const role of ['viewer', 'agent']) { assert.equal((await f.request('/v1/operator/agent/templates', role)).status, 403); assert.equal((await f.request('/v1/operator/agent/templates', role, input)).status, 403); }
+  assert.equal((await f.request('/v1/operator/agent/templates', 'operator', { ...input, principal: 'other-agent' })).status, 400);
+  const response = await f.request('/v1/operator/agent/templates', 'operator', input); assert.equal(response.status, 200); const saved = await response.json(); assert.ok(saved.id);
+  assert.equal((await (await f.request('/v1/operator/agent/templates?enabled=true', 'operator')).json()).items.length, 1);
+  assert.equal((await f.request('/v1/operator/agent/templates/' + saved.id, 'viewer')).status, 403); assert.equal((await f.request('/v1/operator/agent/templates/' + saved.id, 'operator')).status, 200);
+  assert.equal((await f.request('/v1/operator/agent/templates', 'operator', { ...input, id: saved.id })).status, 409);
+  assert.equal(f.agentRuntime.list('demo').total, 0); assert.equal(f.store.events('demo')[0].type, 'agent.template_saved');
+});
+
+test('follow-up API checks operator role, revision and fixed tool mode before appending messages', async t => {
+  const f = await host(t, async () => ({ role: 'assistant', content: 'A generated answer' }));
+  const created = await f.request('/v1/operator/agent/runs', 'operator', { id: 'follow-api', prompt: 'Hello', toolMode: 'chat_only' }); assert.equal(created.status, 202);
+  const first = await f.agentRuntime.wait('demo', 'follow-api'), input = { messageId: 'message-2', prompt: 'More detail', expectedRevision: first.revision }, url = '/v1/operator/agent/runs/follow-api/messages';
+  assert.equal((await f.request(url, 'viewer', input)).status, 403); assert.equal((await f.request(url, 'agent', input)).status, 403);
+  assert.equal((await f.request(url, 'operator', { ...input, toolMode: 'all' })).status, 400);
+  assert.equal((await f.request(url, 'operator', input)).status, 202); const next = await f.agentRuntime.wait('demo', 'follow-api'); assert.equal(next.sessionId, first.sessionId); assert.equal(next.toolMode, 'chat_only'); assert.equal(next.userMessages, 2);
+  assert.equal((await f.request(url, 'operator', { ...input, messageId: 'message-3' })).status, 409);
+  assert.equal(f.store.events('demo').find(e => e.type === 'agent.follow_up').actor, 'reviewer');
+});
+
+test('conversation export API is operator-only, bounded to supported formats and never returns internal context', async t => {
+  const f = await host(t, async () => ({ role: 'assistant', content: 'Generated export text' }));
+  f.agentRuntime.start('demo', { id: 'export-api', prompt: 'Hello' }); await f.agentRuntime.wait('demo', 'export-api'); const url = '/v1/operator/agent/runs/export-api/export';
+  assert.equal((await f.request(url, 'viewer', { format: 'json' })).status, 403); assert.equal((await f.request(url, 'agent', { format: 'json' })).status, 403);
+  assert.equal((await f.request(url, 'operator', { format: 'html' })).status, 400); assert.equal((await f.request(url, 'operator', { format: 'json', includeSystem: true })).status, 400);
+  const response = await f.request(url, 'operator', { format: 'json' }); assert.equal(response.status, 200); const result = await response.json(); const content = JSON.parse(result.content); assert.equal(content.run.conversation.at(-1).text, 'Generated export text'); assert.equal(content.run.toolMode, 'safe'); assert.ok(!result.content.includes('messages":'));
+  assert.equal(f.store.events('demo')[0].actor, 'reviewer'); assert.equal((await f.request('/v1/operator/agent/runs?includeSystem=true', 'operator')).status, 400);
+});
+
 test('real-agent API isolates operator conversations and rejects forged runtime context', async t => {
   const f = await host(t, async () => ({ role: 'assistant', content: 'Provider-generated unit test reply' }));
   const config = await (await f.request('/v1/operator/agent/config')).json(); assert.equal(config.configured, true); assert.ok(!JSON.stringify(config).includes('token'));

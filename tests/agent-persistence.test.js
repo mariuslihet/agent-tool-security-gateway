@@ -9,12 +9,43 @@ import { fixture, report, admin } from './helpers.js';
 import { Store } from '../src/store.js';
 import { Gateway } from '../src/gateway.js';
 import { AgentRuntime } from '../src/agent-runtime.js';
+import { open, seal } from '../src/util.js';
+
+test('task organization and disabled templates survive restart encrypted without changing task state', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'gateway-ai-library-')), path = join(dir, 'state.sqlite'), key = randomBytes(32).toString('hex'); let f, store;
+  try {
+    f = fixture(null, { path, key }); const agent = new AgentRuntime({ gateway: f.gateway, provider: { model: 'library-test', complete: async () => ({ role: 'assistant', content: 'Completed answer' }) } }); agent.start('demo', { id: 'persistent-library', prompt: 'Hello' }); const run = await agent.wait('demo', 'persistent-library');
+    agent.library.organize('demo', run.id, { expectedRevision: 0, title: 'private-library-title-8841', tags: ['math'], pinned: true, archived: true }, 'reviewer');
+    const saved = agent.library.saveTemplate('demo', { expectedRevision: 0, title: 'Reusable arithmetic', prompt: 'private-template-text-6632', toolMode: 'safe', enabled: false }, 'reviewer'); f.store.close(); f = { ...f, store: null };
+    const text = readFileSync(path).toString(); assert.ok(!text.includes('private-library-title-8841')); assert.ok(!text.includes('private-template-text-6632'));
+    store = new Store(path, key); const gateway = new Gateway({ store, registry: f.registry, policy: f.policy, profiles: f.profiles, clock: () => 1700000000000 }), restarted = new AgentRuntime({ gateway, provider: null }); const after = restarted.get('demo', run.id);
+    assert.equal(after.revision, run.revision); assert.equal(after.state, 'completed'); assert.equal(after.organization.archived, true); assert.equal(after.organization.pinned, true); assert.equal(after.organization.revision, 1); assert.equal(restarted.library.template('demo', saved.id).enabled, false); assert.equal(restarted.library.template('demo', saved.id).prompt, 'private-template-text-6632'); assert.equal(store.verifyAudit().valid, true);
+  } finally { f?.store?.close(); store?.close(); assert.equal(dirname(resolve(dir)), resolve(tmpdir())); assert.ok(basename(dir).startsWith('gateway-ai-library-')); rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('legacy tasks can continue after restart without resetting permissions or inventing historical usage', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'gateway-ai-follow-')), path = join(dir, 'state.sqlite'), key = randomBytes(32).toString('hex'); let f, store;
+  try {
+    f = fixture(null, { path, key });
+    const first = new AgentRuntime({ gateway: f.gateway, provider: { model: 'follow-test', complete: async () => ({ role: 'assistant', content: 'Remember this: 42.' }) } });
+    first.start('demo', { id: 'legacy', prompt: 'private-follow-up-prompt-3184', toolMode: 'all' }); const completed = await first.wait('demo', 'legacy');
+    const row = f.store.db.prepare('SELECT data FROM agent_runs WHERE id=?').get('legacy'), raw = open(f.store.encryptionKey, row.data);
+    for (const field of ['toolMode', 'revision', 'usage', 'userMessages']) delete raw[field];
+    f.store.db.prepare('UPDATE agent_runs SET data=? WHERE id=?').run(seal(f.store.encryptionKey, raw), 'legacy'); f.store.close(); f = { ...f, store: null };
+    assert.ok(!readFileSync(path).toString().includes('private-follow-up-prompt-3184'));
+    store = new Store(path, key); const gateway = new Gateway({ store, registry: f.registry, policy: f.policy, profiles: f.profiles, clock: () => 1700000000000 });
+    const second = new AgentRuntime({ gateway, provider: { model: 'follow-test', complete: async messages => { assert.ok(messages.some(m => m.content === 'Remember this: 42.')); return { role: 'assistant', content: 'The remembered answer is 42.', usage: { inputTokens: 7, outputTokens: 4, modelDurationMs: 2 } }; } } });
+    const legacy = second.get('demo', 'legacy'); assert.equal(legacy.toolMode, 'all'); assert.equal(legacy.revision, 0); assert.equal(legacy.usage.requests, 1); assert.equal(legacy.usage.reportedRequests, 0);
+    second.followUp('demo', 'legacy', { messageId: 'continued', prompt: 'What was the answer?', expectedRevision: 0 }); const result = await second.wait('demo', 'legacy');
+    assert.equal(result.sessionId, completed.sessionId); assert.equal(result.usage.requests, 2); assert.equal(result.usage.reportedRequests, 1); assert.equal(result.usage.inputTokens, 7); assert.equal(result.allowedTools.length, 7); assert.equal(result.userMessages, 2); assert.equal(store.verifyAudit().valid, true);
+  } finally { f?.store?.close(); store?.close(); assert.equal(dirname(resolve(dir)), resolve(tmpdir())); assert.ok(basename(dir).startsWith('gateway-ai-follow-')); rmSync(dir, { recursive: true, force: true }); }
+});
 
 test('encrypted AI tasks survive restart and resume the same approved tool request without regenerating it', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'gateway-ai-')), path = join(dir, 'state.sqlite'), key = randomBytes(32).toString('hex'); let f, store;
   try {
     f = fixture(null, { path, key }); const first = new AgentRuntime({ gateway: f.gateway, provider: { model: 'local-test', complete: async (messages, tools) => ({ role: 'assistant', content: '', tool_calls: [{ function: { name: tools.find(t => t.function.description.startsWith('report.publish:')).function.name, arguments: report } }] }) } });
-    first.start('demo', { id: 'restart', prompt: 'private-ai-prompt-4172' }); const waiting = await first.wait('demo', 'restart'); assert.equal(waiting.state, 'waiting'); const requestId = waiting.steps[0].requestId;
+    first.start('demo', { id: 'restart', prompt: 'private-ai-prompt-4172', toolMode: 'all' }); const waiting = await first.wait('demo', 'restart'); assert.equal(waiting.state, 'waiting'); const requestId = waiting.steps[0].requestId;
     f.store.close(); f = { ...f, store: null }; assert.ok(!readFileSync(path).toString().includes('private-ai-prompt-4172'));
     store = new Store(path, key); const gateway = new Gateway({ store, registry: f.registry, policy: f.policy, profiles: f.profiles, clock: () => 1700000000000 });
     const second = new AgentRuntime({ gateway, provider: { model: 'local-test', complete: async messages => { assert.equal(messages.at(-1).role, 'tool'); return { role: 'assistant', content: 'The adapter simulated publishing.' }; } } });

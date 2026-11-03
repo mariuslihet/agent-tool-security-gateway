@@ -4,7 +4,7 @@
 
 Built with Node.js 24 and its standard library. No runtime dependencies, hosted model, API key, or paid service is required for the demo.
 
-> **Release status: security-focused reference implementation, v0.6.0.** The gateway and its controls are functional; the default publishing and payment tools are simulations. An independent security assessment and deployment-specific isolation are still required before entrusting it with production privileges. See [the threat model](docs/threat-model.md).
+> **Release status: security-focused reference implementation, v0.10.0.** The gateway and its controls are functional; the default publishing and payment tools are simulations. An independent security assessment and deployment-specific isolation are still required before entrusting it with production privileges. See [the threat model](docs/threat-model.md).
 
 ## The operator console
 
@@ -20,7 +20,15 @@ Version 0.5 adds expiring session-tree quarantine, tenant-scoped tool maintenanc
 
 Version 0.6 adds a real Ollama agent loop: generated text, model-proposed tools enforced by the gateway, exact-call approval/hold resume, encrypted task history, cancellation and bounded execution. See [local AI setup](docs/local-ai.md).
 
+Version 0.7 adds conversation follow-ups within the original task, per-task tool access modes, token/timing statistics and audited conversation exports. New tasks default to the safe handbook/arithmetic/encoding set; chat-only tasks receive zero tool grants. See [conversation features](docs/conversations.md).
+
+Version 0.8 adds a searchable task library with custom titles, tags, pins, reversible archive/restore and pagination, plus encrypted prompt templates that fill the new-task form without starting a model. Organization has its own revision and cannot change a running conversation's capabilities or budgets. See [task library and templates](docs/task-library.md).
+
+Version 0.9 adds read-only task health, budget diagnostics, pending approval status, and original-prompt reuse with safe tools selected. See [task health and prompt reuse](docs/task-health.md).
+
 ## Use a real local LLM
+
+Version 0.10 adds **real workspace tools**: search/read reviewed local documents and save a report after exact-request approval. Select Workspace mode; activity shows generation, tool work and approval waits. The included input is labeled sample content, while file operations are real. See [workspace setup and limits](docs/workspace-tools.md).
 
 Install Ollama and a tool-capable local model, then add these non-secret settings to `.env` and restart `npm start`:
 
@@ -89,7 +97,7 @@ npm run benchmark
 | Credentials | Per-tool host-side secret broker; downstream credentials stay outside model context |
 | Integrations | HTTP API, JavaScript client, function-calling dispatcher, minimal version-pinned MCP stdio transport |
 | Operations | Eleven-page console, viewer role, durable tenant totals and hourly chart, searchable/paginated audit and exports, session inspector, tool catalog, policy studio, readiness and correlation IDs |
-| Local AI runtime | Real Ollama generation and function calling; guarded dispatch, encrypted tasks, approval/pause resume, cancellation, shared task leases, finite loops and classified-result withholding |
+| Local AI runtime | Real Ollama generation and function calling; guarded dispatch, encrypted conversations and follow-ups, per-task tool modes, usage metrics, audited exports, approval/pause resume, cancellation, shared leases and finite loops |
 | Request investigation | Tenant/filter-bound request pagination, status/tool/search filters, bounded exact-request timelines and audited operator argument inspection; cached outputs never exposed |
 | Local alerts | Encrypted threshold rules, rolling event windows, deduplication, version-checked acknowledgement/resolution, reopening cooldown and encrypted notes |
 | Workspace reports | Tenant metadata snapshot, configuration fingerprints, counts, containment status, cached integrity status, SHA-256 content hash and audited generation |
@@ -160,6 +168,14 @@ Keep the agent process separate from the gateway. Give only the gateway access t
 - [Version 0.5 verification](docs/verification-v0.5.md)
 - [Real local AI setup and recovery](docs/local-ai.md)
 - [Version 0.6 verification](docs/verification-v0.6.md)
+- [Conversation controls and exports](docs/conversations.md)
+- [Version 0.7 verification](docs/verification-v0.7.md)
+- [Task library and prompt templates](docs/task-library.md)
+- [Version 0.8 verification](docs/verification-v0.8.md)
+- [Task health and prompt reuse](docs/task-health.md)
+- [Version 0.9 verification](docs/verification-v0.9.md)
+- [Real workspace tools and approval workflow](docs/workspace-tools.md)
+- [Version 0.10 verification](docs/verification-v0.10.md)
 - [Security reporting](SECURITY.md)
 
 ## Guidance behind the design

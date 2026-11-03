@@ -42,7 +42,11 @@ export class Store {
         CREATE TABLE IF NOT EXISTS scoped_holds (tenant TEXT NOT NULL,kind TEXT NOT NULL,target TEXT NOT NULL,data TEXT NOT NULL,PRIMARY KEY(tenant,kind,target));
         CREATE TABLE IF NOT EXISTS agent_runs (id TEXT PRIMARY KEY,tenant TEXT NOT NULL,principal TEXT NOT NULL,data TEXT NOT NULL);
         CREATE INDEX IF NOT EXISTS agent_runs_tenant ON agent_runs(tenant);
-        CREATE TABLE IF NOT EXISTS agent_run_locks (id TEXT PRIMARY KEY,owner TEXT NOT NULL,expires INTEGER NOT NULL);`);
+        CREATE TABLE IF NOT EXISTS agent_run_locks (id TEXT PRIMARY KEY,owner TEXT NOT NULL,expires INTEGER NOT NULL);
+        CREATE TABLE IF NOT EXISTS task_organization (id TEXT PRIMARY KEY,tenant TEXT NOT NULL,data TEXT NOT NULL);
+        CREATE INDEX IF NOT EXISTS task_organization_tenant ON task_organization(tenant);
+        CREATE TABLE IF NOT EXISTS task_templates (id TEXT PRIMARY KEY,tenant TEXT NOT NULL,data TEXT NOT NULL);
+        CREATE INDEX IF NOT EXISTS task_templates_tenant ON task_templates(tenant);`);
       this.transaction(() => {
         for (const row of this.db.prepare('SELECT seq,event FROM audit WHERE seq NOT IN (SELECT seq FROM audit_index)').iterate()) this.#index(row.seq, JSON.parse(row.event));
         for (const row of this.db.prepare('SELECT r.session,r.id FROM requests r WHERE NOT EXISTS (SELECT 1 FROM request_index i WHERE i.session=r.session AND i.id=r.id)').iterate()) this.#indexRequest(this.request(row.session, row.id));

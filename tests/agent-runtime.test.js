@@ -28,7 +28,7 @@ test('LLM tool argument errors are denied mechanically and fed back for recovery
 test('approval pauses the loop and resumes the persisted exact call after a separate operator decision', async t => {
   const f = fixture(t); let turns = 0;
   const agent = runtime(f, async (messages, tools) => ++turns === 1 ? call(tools, 'report.publish', report) : assistant('The publishing adapter returned simulation mode, not delivery.'));
-  agent.start('demo', { id: 'approval', prompt: 'Prepare a simulated report' }); const waiting = await agent.wait('demo', 'approval'); assert.equal(waiting.state, 'waiting'); assert.equal(turns, 1);
+  agent.start('demo', { id: 'approval', prompt: 'Prepare a simulated report', toolMode: 'all' }); const waiting = await agent.wait('demo', 'approval'); assert.equal(waiting.state, 'waiting'); assert.equal(turns, 1);
   const pending = f.gateway.approvals('demo')[0]; f.gateway.decideApproval(admin, { sessionId: pending.sessionId, requestId: pending.requestId, binding: pending.binding, decision: 'approve' });
   agent.resume('demo', waiting.id); const finished = await agent.wait('demo', waiting.id); assert.equal(finished.state, 'completed'); assert.equal(finished.steps[0].requestId, waiting.steps[0].requestId); assert.equal(finished.toolCalls, 1);
   assert.equal(f.store.request(pending.sessionId, pending.requestId).approval.state, 'consumed');
@@ -45,7 +45,7 @@ test('scoped pauses preserve the original model call until explicit resume', asy
 
 test('sensitive tool results never enter a subsequent model request or operator conversation', async t => {
   const f = fixture(t); let turns = 0; const agent = runtime(f, async (messages, tools) => { turns++; return call(tools, 'vault.read', { record: 'invoice' }); });
-  agent.start('demo', { id: 'sensitive', prompt: 'Read invoice' }); const result = await agent.wait('demo', 'sensitive'); assert.equal(result.code, 'MODEL_DATA_WITHHELD'); assert.equal(turns, 1);
+  agent.start('demo', { id: 'sensitive', prompt: 'Read invoice', toolMode: 'all' }); const result = await agent.wait('demo', 'sensitive'); assert.equal(result.code, 'MODEL_DATA_WITHHELD'); assert.equal(turns, 1);
   assert.ok(!JSON.stringify(result).includes('4200')); assert.equal(result.steps[0].status, 'completed');
 });
 

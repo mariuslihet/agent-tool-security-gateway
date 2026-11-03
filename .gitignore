@@ -6,3 +6,7 @@ var/
 coverage/
 *.sqlite*
 *.log
+workspace/input/*
+!workspace/input/project-brief.md
+workspace/reports/*
+!workspace/reports/.gitkeep

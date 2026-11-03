@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.10.0 — 2026-11-03
+
+- Added real reviewed-document search/read tools with startup-pinned content hashes, byte bounds, literal search and strict flat-file paths.
+- Added real local report creation through exact-request approval, exclusive no-overwrite creation and existing provenance/egress controls.
+- Added explicit Workspace mode, retaining original Safe mode permissions.
+- Added persisted activity phases for model generation, tool evaluation/execution and operator waiting, refreshed during active tasks.
+- Added filesystem, junction, hard-link, content-change and approval/resume regression checks and disposable workspace browser QA.
+
+## 0.9.0 — 2026-11-03
+
+- Added operator-only task health diagnostics: budgets, session expiry, follow-up blockers, tool restrictions and pending approvals.
+- Added a read-only console panel and client method with explicit snapshot semantics.
+- Added original-prompt reuse into a fresh form with safe tools selected and explicit submission.
+- Added privacy, authorization, expiry, revocation, archive, budget, quarantine, pause and approval-expiry regression coverage.
+
+## 0.8.0 — 2026-11-03
+
+- Added encrypted task titles, tags, pins and reversible archiving, with independent metadata revisions and hashed audit evidence.
+- Added task-history search, state/archive/pin filters, pin-first recent ordering and bounded pagination across retained tasks.
+- Added encrypted prompt templates with tool-mode selection, revision-checked editing and enable/disable controls; loading never submits a task automatically.
+- Kept organization separate from conversation updates so model state cannot overwrite operator labels. Archived tasks must be restored before continuation; running/waiting work cannot be archived.
+- Added operator-only library/template APIs, client methods, persistence coverage, validation, isolation and rollback tests.
+
+## 0.7.0 — 2026-11-03
+
+- Added follow-up messages in a completed AI task, retaining conversation context, the gateway session, capabilities, provenance and cumulative task budgets.
+- Added revision-checked, idempotent follow-up requests, shared worker leases and authenticated operator attribution in follow-up/export audit records.
+- Added per-task safe, chat-only and all-host-granted tool modes. New tasks default to safe tools; chat-only sessions are created with zero tool capabilities.
+- Added Ollama token/duration statistics and measured local request time, with explicit coverage for missing and historical metrics.
+- Added audited, redacted JSON/Markdown conversation exports with byte-verifiable SHA-256 hashes. Markdown conversation text is fenced as untrusted data.
+- Extended the console, control-plane client, API authorization tests, legacy-task restart coverage and task permission tests.
+
 ## 0.6.0 — 2026-11-02
 
 - Added real local Ollama generation with native function-tool calling and model capability checks. No canned model answers or cloud API keys.

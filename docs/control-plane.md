@@ -85,3 +85,11 @@ The console now has ten workspaces. **Request Explorer** filters persisted outco
 ## Scoped response in 0.5
 
 **Safety Controls** adds a scoped hold form, exact-target confirmation, active/all-target filters and audited release. Session and tool detail dialogs prefill that form. **Overview** adds read-only health diagnostics for operational follow-up; sampling coverage is explicit. Viewer access supports investigation while mutations require an operator. See [scoped containment and workspace health](scoped-containment.md).
+
+## Conversations in 0.7
+
+**AI Agent** adds a safe/chat-only/all-granted tool selector for new tasks, follow-ups for completed conversations, provider token/duration statistics and audited JSON/Markdown exports. Tool modes are enforced in actual gateway capabilities and cannot change mid-task. See [conversation behavior and limits](conversations.md).
+
+## Task library in 0.8
+
+AI Agent now includes searchable/paginated history, titles, tags, pins, archive/restore and encrypted prompt templates. Organization has a separate revision from execution. Template loading only fills the new-task form; explicit submission is still required. All library and template access is operator-only. See [task library and template guide](task-library.md).

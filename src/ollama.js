@@ -36,7 +36,10 @@ export class OllamaProvider {
       assert(args && typeof args === 'object' && !Array.isArray(args), 'INVALID_LLM_TOOL_CALL');
       return { function: { name: call.function.name, arguments: bounded(args, 32768) } };
     });
-    return { role: 'assistant', content, ...(normalized.length ? { tool_calls: normalized } : {}) };
+    const metrics = [data.prompt_eval_count, data.eval_count, data.total_duration];
+    for (const metric of metrics) if (metric !== undefined) assert(Number.isSafeInteger(metric) && metric >= 0 && metric <= 1e12, 'INVALID_LLM_USAGE');
+    const usage = metrics.every(v => v !== undefined) ? { inputTokens: data.prompt_eval_count, outputTokens: data.eval_count, modelDurationMs: data.total_duration / 1e6 } : null;
+    return { role: 'assistant', content, ...(normalized.length ? { tool_calls: normalized } : {}), ...(usage ? { usage } : {}) };
   }
 }
 

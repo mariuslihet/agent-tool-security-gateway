@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.13.0 — 2026-11-04
+
+- Added opt-in template fields with bounded literal interpolation and dynamically generated console forms.
+- Added revision/enabled checks and mandatory fingerprint-only audit for template loads, including plain templates.
+- Preserved legacy literal templates and existing task budgets during prompt preparation.
+- Added field syntax, expansion, redaction, ownership, stale form, audit-failure and encrypted restart tests.
+
+## 0.12.0 — 2026-11-04
+
+- Added immutable per-task turn, tool and attempt-time budgets with Standard/Quick/custom controls.
+- Added gateway session call attenuation for new tasks, preserving stricter host ceilings and ancestor enforcement.
+- Added Workspace read-only mode and template support without report/write capabilities.
+- Added budget-bound idempotency, restart compatibility and actual-budget health/inspection.
+- Added boundary tests for validation, exhaustion, timeout, approval resume, direct/delegated bypass and read-only authority.
+
+## 0.11.0 — 2026-11-04
+
+- Added operator-only workspace source integrity and saved-report inventory.
+- Added plain-text report preview and checksum-verified downloads with mandatory read audit.
+- Added stale-hash rejection, bounded directory scans, unsafe-file skipping and byte-exact Unicode/BOM handling.
+- Added filesystem and HTTP regression checks for roles, tenant binding, privacy, audit failure and scan limits.
+
 ## 0.10.0 — 2026-11-03
 
 - Added real reviewed-document search/read tools with startup-pinned content hashes, byte bounds, literal search and strict flat-file paths.

@@ -36,12 +36,12 @@ export function demoProfile(registry, { id = 'demo-agent', tenant = 'demo', limi
 export function loadDefaultPolicy() { return new Policy(JSON.parse(readFileSync(new URL('../policies/default.json', import.meta.url), 'utf8'))); }
 export function createDemo({ path = ':memory:', masterKey, clock, profiles, onEvent, workspaceRoot } = {}) {
   assert(!workspaceRoot || !profiles, 'WORKSPACE_CUSTOM_PROFILES_UNSUPPORTED');
-  const registry = demoRegistry(); let policy = loadDefaultPolicy();
+  const registry = demoRegistry(); let policy = loadDefaultPolicy(), workspace;
   if (workspaceRoot) {
-    registerWorkspaceTools(registry, { root: workspaceRoot }); const data = structuredClone(policy.data);
+    workspace = { ...registerWorkspaceTools(registry, { root: workspaceRoot }), tenant: 'demo' }; const data = structuredClone(policy.data);
     data.rules.push({ id: 'workspace-read', tools: ['workspace.search', 'workspace.read'], effect: 'allow', when: [] }, { id: 'workspace-report-review', tools: ['workspace.report.save'], effect: 'approval', when: [] }); policy = new Policy(data);
   }
   const store = new Store(path, masterKey);
   const gateway = new Gateway({ store, registry, policy, profiles: profiles ?? [demoProfile(registry)], clock, onEvent });
-  return { store, registry, policy, gateway };
+  return { store, registry, policy, gateway, workspace };
 }

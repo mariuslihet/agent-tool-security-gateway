@@ -30,7 +30,7 @@ These list responses still omit conversation text and tool results. Full convers
 
 **Save current prompt as template** opens an editor with a title, prompt, tool mode and enabled flag. It can also start from an empty form. The explicit reference limits are 25 retained templates per tenant, 80-character titles and 8,000-character prompts. Disabled templates still count toward that bound and can be edited/re-enabled. There is no delete operation.
 
-Templates are encrypted, tenant-scoped, revision checked and audited by actor, template ID, mode, enabled state and content hash. Raw prompt/title text is excluded from audit. Read responses redact known secret patterns; only that displayed text is loaded. Editing and saving replaces the displayed values, so use placeholders rather than storing secrets in a reusable prompt.
+Templates are encrypted, tenant-scoped, revision checked and audited by actor, template ID, mode, enabled state and content hash. Raw prompt/title text is excluded from audit. Read responses redact known secret patterns. Loading now uses a revision-checked render step; field templates insert supplied values and redact the completed prompt. Editing and saving replaces the displayed values, so use placeholders rather than storing secrets in a reusable prompt.
 
 **Load prompt** fills the new-task prompt and tool-mode selector. It never starts a model, creates a session, changes the selected existing task, grants approval, or modifies that task's fixed tool mode. Review the prompt and selected access mode, then choose **Start new AI task**. Template edits do not retroactively alter existing tasks.
 

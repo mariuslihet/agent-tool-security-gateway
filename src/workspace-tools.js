@@ -1,18 +1,19 @@
 import { constants } from 'node:fs';
 import { lstatSync, realpathSync, readdirSync, openSync, readSync, fstatSync, closeSync } from 'node:fs';
-import { lstat, realpath, open, unlink } from 'node:fs/promises';
+import { lstat, realpath, open, unlink, opendir } from 'node:fs/promises';
 import { resolve, relative } from 'node:path';
 import { createHash } from 'node:crypto';
 import { assert, digest } from './util.js';
 import { inspect } from './scanners.js';
 
 export const WORKSPACE_LIMITS = Object.freeze({ maxDocuments: 50, maxDocumentBytes: 8192, maxReportBytes: 8192, maxMatches: 10, maxQueryChars: 128 });
+export const WORKSPACE_LIBRARY_LIMITS = Object.freeze({ maxReportEntries: 100 });
 const filename = name => typeof name === 'string' && name.length <= 80 && /^[a-zA-Z0-9][a-zA-Z0-9_-]*\.(md|txt)$/.test(name) && !/^(con|prn|aux|nul|com[1-9]|lpt[1-9])\./i.test(name);
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const object = properties => ({ type: 'object', properties, required: Object.keys(properties), additionalProperties: false });
 const text = maxLength => ({ type: 'string', minLength: 1, maxLength });
 const checkedText = bytes => {
-  const value = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+  const value = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes);
   assert(!/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(value) && inspect(value).length === 0, 'WORKSPACE_CONTENT_REJECTED'); return value;
 };
 
@@ -68,5 +69,35 @@ export function registerWorkspaceTools(registry, { root }) {
       if (!complete && created) { try { await checkRoots(); const current = await lstat(path); if (current.isFile() && !current.isSymbolicLink() && current.dev === created.dev && current.ino === created.ino) await unlink(path); } catch { /* Preserve uncertain files when ownership/containment cannot be re-established. */ } }
     }
   }, true);
-  return { documents: documents.map(d => d.name), binding, limits: WORKSPACE_LIMITS };
+  async function readReport(file) {
+    assert(filename(file), 'WORKSPACE_PATH_REJECTED'); await checkRoots();
+    const path = resolve(reports, file), before = await lstat(path); assert(before.isFile() && !before.isSymbolicLink() && before.nlink === 1, 'WORKSPACE_PATH_REJECTED');
+    const handle = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
+    try {
+      const stat = await handle.stat(); assert(stat.isFile() && stat.nlink === 1 && stat.dev === before.dev && stat.ino === before.ino && stat.size <= WORKSPACE_LIMITS.maxReportBytes, 'WORKSPACE_DOCUMENT_REJECTED');
+      const buffer = Buffer.alloc(WORKSPACE_LIMITS.maxReportBytes + 1), { bytesRead } = await handle.read(buffer, 0, buffer.length, 0), bytes = buffer.subarray(0, bytesRead);
+      assert(bytesRead <= WORKSPACE_LIMITS.maxReportBytes, 'WORKSPACE_DOCUMENT_REJECTED'); const content = checkedText(bytes); await checkRoots();
+      return { file, content, bytes: bytesRead, sha256: hash(bytes) };
+    } finally { await handle.close(); }
+  }
+  async function inventory() {
+    await checkRoots(); const inputs = [];
+    for (const document of documents) {
+      try { const current = await read(document.name); inputs.push({ file: document.name, sha256: document.sha256, bytes: Buffer.byteLength(current.text), status: 'verified' }); }
+      catch (error) { inputs.push({ file: document.name, sha256: document.sha256, bytes: null, status: error.code === 'WORKSPACE_DOCUMENT_CHANGED' ? 'changed' : 'unavailable' }); }
+    }
+    const items = []; let scanned = 0, skipped = 0, truncated = false;
+    for await (const entry of await opendir(reports)) {
+      if (++scanned > WORKSPACE_LIBRARY_LIMITS.maxReportEntries) { truncated = true; break; }
+      if (entry.name === '.gitkeep') continue;
+      if (!entry.isFile() || entry.isSymbolicLink() || !filename(entry.name)) { skipped++; continue; }
+      try { const { content, ...metadata } = await readReport(entry.name); items.push(metadata); } catch { skipped++; }
+    }
+    await checkRoots(); return { configured: true, inputs, reports: items.sort((a, b) => a.file.localeCompare(b.file)), skipped, truncated, limits: WORKSPACE_LIBRARY_LIMITS };
+  }
+  async function inspectReport({ file, expectedHash }) {
+    assert(typeof expectedHash === 'string' && /^[a-f0-9]{64}$/.test(expectedHash), 'INVALID_REPORT_HASH');
+    const result = await readReport(file); assert(result.sha256 === expectedHash, 'REPORT_CHANGED'); return result;
+  }
+  return { documents: documents.map(d => d.name), binding, limits: WORKSPACE_LIMITS, inventory, inspectReport };
 }

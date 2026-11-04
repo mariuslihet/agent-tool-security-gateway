@@ -114,3 +114,9 @@ dialog{width:min(510px,calc(100vw - 32px));max-height:calc(100dvh - 48px);overfl
 .agent-message.assistant { border-left:3px solid var(--accent); }
 .agent-message p { white-space:pre-wrap; overflow-wrap:anywhere; margin-top:10px; }
 #agent-task-form { margin-top:20px; }
+#agent-budget-details>label { display:block; margin-bottom:8px; }
+#agent-budget-details>select { width:min(100%,440px); margin-bottom:16px; }
+.task-budget-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
+.task-budget-grid label { display:grid; gap:8px; align-content:start; }
+.task-budget-grid input { width:100%; max-width:140px; }
+@media(max-width:720px) { .task-budget-grid { grid-template-columns:1fr; } }

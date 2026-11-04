@@ -76,9 +76,11 @@ export class Gateway {
   #checkRevocation(tenant, type, value) {
     assert(!this.store.db.prepare('SELECT value FROM meta WHERE key=?').get(`revoked:${tenant}:${type}:${value}`), 'REVOKED');
   }
-  createRestrictedSession(principal, toolNames) {
+  createRestrictedSession(principal, toolNames, { maxCalls } = {}) {
     assert(Array.isArray(toolNames) && toolNames.every(name => typeof name === 'string' && this.registry.get(name)), 'INVALID_TOOL_SELECTION');
-    return this.createSession(principal, { grants: jsonClone(this.#profile(principal).grants).filter(g => toolNames.includes(g.tool)) });
+    assert(maxCalls === undefined || Number.isSafeInteger(maxCalls) && maxCalls > 0, 'INVALID_TASK_BUDGET');
+    const profile = this.#profile(principal);
+    return this.createSession(principal, { grants: jsonClone(profile.grants).filter(g => toolNames.includes(g.tool)), ...(maxCalls === undefined ? {} : { limits: { ...profile.limits, maxCalls: Math.min(maxCalls, profile.limits.maxCalls) } }) });
   }
   createSession(principal, { parentId, grants, limits } = {}) {
     const p = this.#profile(principal);

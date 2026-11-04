@@ -1,7 +1,7 @@
 import { createServer } from 'node:http';
 import { readFileSync } from 'node:fs';
 import { createHash, randomUUID } from 'node:crypto';
-import { assert, bounded, equal, GatewayError, idPattern } from './util.js';
+import { assert, bounded, equal, GatewayError, idPattern, digest } from './util.js';
 import { Policy } from './policy.js';
 import { validatePolicyDocument, previewPolicy, runPolicySuite } from './policy-lab.js';
 import { VERSION } from './version.js';
@@ -51,7 +51,7 @@ function queryOptions(params, allowed) {
 }
 const auditFilters = ['limit', 'cursor', 'type', 'tool', 'code', 'session', 'search', 'from', 'to'];
 
-export function createGatewayServer({ gateway, credentials, metrics, agentRuntime, maxBodyBytes = 131072, rateLimit = 120, heavyRateLimit = 6, clock = Date.now }) {
+export function createGatewayServer({ gateway, credentials, metrics, agentRuntime, workspaceFiles, maxBodyBytes = 131072, rateLimit = 120, heavyRateLimit = 6, clock = Date.now }) {
   assert(Array.isArray(credentials) && credentials.length > 0, 'CREDENTIALS_REQUIRED');
   assert([rateLimit, heavyRateLimit].every(value => Number.isSafeInteger(value) && value > 0), 'INVALID_SERVER_CONFIG');
   const identities = credentials.map(c => {
@@ -90,6 +90,17 @@ export function createGatewayServer({ gateway, credentials, metrics, agentRuntim
         if (identity.heavyUsed > heavyRateLimit) { res.setHeader('retry-after', Math.max(1, Math.ceil((identity.reset - clock()) / 1000))); assert(false, 'RATE_LIMITED'); }
       };
       const agent = () => assert(identity.role === 'agent', 'FORBIDDEN');
+      if (path === '/v1/operator/workspace' && req.method === 'GET') {
+        operator(); heavy(); queryOptions(url.searchParams, []);
+        send(200, workspaceFiles?.tenant === identity.tenant ? await workspaceFiles.inventory() : { configured: false, inputs: [], reports: [] }); return;
+      }
+      if (path === '/v1/operator/workspace/reports/read' && req.method === 'POST') {
+        operator(); heavy(); queryOptions(url.searchParams, []); assert(workspaceFiles?.tenant === identity.tenant, 'WORKSPACE_NOT_CONFIGURED');
+        const body = await readBody(req, maxBodyBytes); shape(body, ['file', 'expectedHash', 'purpose'], ['file', 'expectedHash', 'purpose']); assert(['preview', 'download'].includes(body.purpose), 'INVALID_REQUEST');
+        const result = await workspaceFiles.inspectReport(body);
+        gateway.store.transaction(() => gateway.store.append({ type: 'workspace.report_read', tenant: identity.tenant, actor: identity.principal, purpose: body.purpose, fileHash: digest(result.file), contentHash: result.sha256, bytes: result.bytes }));
+        send(200, result); return;
+      }
       if (req.method === 'GET' && path === '/v1/operator/agent/config') {
         reader(); queryOptions(url.searchParams, []); send(200, agentRuntime?.configuration() ?? { configured: false, provider: 'ollama', model: null, local: true }); return;
       }
@@ -100,16 +111,18 @@ export function createGatewayServer({ gateway, credentials, metrics, agentRuntim
         operator(); assert(agentRuntime, 'LLM_NOT_CONFIGURED'); send(200, agentRuntime.list(identity.tenant, queryOptions(url.searchParams, ['search', 'state', 'archive', 'pinned', 'limit', 'offset']))); return;
       }
       if (path === '/v1/operator/agent/runs' && req.method === 'POST') {
-        operator(); heavy(); const body = await readBody(req, maxBodyBytes); shape(body, ['id', 'prompt', 'toolMode'], ['id', 'prompt']); assert(agentRuntime, 'LLM_NOT_CONFIGURED'); send(202, agentRuntime.start(identity.tenant, body)); return;
+        operator(); heavy(); const body = await readBody(req, maxBodyBytes); shape(body, ['id', 'prompt', 'toolMode', 'taskLimits'], ['id', 'prompt']); assert(agentRuntime, 'LLM_NOT_CONFIGURED'); send(202, agentRuntime.start(identity.tenant, body)); return;
       }
       if (path === '/v1/operator/agent/templates' && req.method === 'GET') {
         operator(); assert(agentRuntime, 'LLM_NOT_CONFIGURED'); send(200, agentRuntime.library.templates(identity.tenant, queryOptions(url.searchParams, ['enabled']))); return;
       }
       if (path === '/v1/operator/agent/templates' && req.method === 'POST') {
-        operator(); assert(agentRuntime, 'LLM_NOT_CONFIGURED'); const body = await readBody(req, maxBodyBytes); shape(body, ['id', 'expectedRevision', 'title', 'prompt', 'toolMode', 'enabled'], ['expectedRevision', 'title', 'prompt', 'toolMode', 'enabled']);
+        operator(); assert(agentRuntime, 'LLM_NOT_CONFIGURED'); const body = await readBody(req, maxBodyBytes); shape(body, ['id', 'expectedRevision', 'title', 'prompt', 'toolMode', 'enabled', 'parameterized'], ['expectedRevision', 'title', 'prompt', 'toolMode', 'enabled']);
         send(200, agentRuntime.library.saveTemplate(identity.tenant, body, identity.principal)); return;
       }
       const templatePath = /^\/v1\/operator\/agent\/templates\/([a-zA-Z0-9_-]{1,96})$/.exec(path);
+      const templateRender = /^\/v1\/operator\/agent\/templates\/([a-zA-Z0-9_-]{1,96})\/render$/.exec(path);
+      if (templateRender && req.method === 'POST') { operator(); queryOptions(url.searchParams, []); assert(agentRuntime, 'LLM_NOT_CONFIGURED'); const body = await readBody(req, maxBodyBytes); shape(body, ['expectedRevision', 'values'], ['expectedRevision', 'values']); send(200, agentRuntime.library.renderTemplate(identity.tenant, templateRender[1], body, identity.principal)); return; }
       if (templatePath && req.method === 'GET') { operator(); queryOptions(url.searchParams, []); assert(agentRuntime, 'LLM_NOT_CONFIGURED'); send(200, agentRuntime.library.template(identity.tenant, templatePath[1])); return; }
       const agentRun = /^\/v1\/operator\/agent\/runs\/([a-zA-Z0-9_-]{1,96})(?:\/(resume|cancel|messages|export|organize|health))?$/.exec(path);
       if (agentRun?.[2] === 'health') { operator(); assert(req.method === 'GET', 'INVALID_REQUEST'); queryOptions(url.searchParams, []); assert(agentRuntime, 'LLM_NOT_CONFIGURED'); send(200, agentRuntime.health(identity.tenant, agentRun[1])); return; }

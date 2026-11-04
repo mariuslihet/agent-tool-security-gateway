@@ -13,6 +13,7 @@ let workspaceRoot;
 if (process.env.GATEWAY_QA_WORKSPACE === '1') {
   workspaceRoot = mkdtempSync(join(tmpdir(), 'gateway-browser-workspace-')); mkdirSync(join(workspaceRoot, 'input')); mkdirSync(join(workspaceRoot, 'reports'));
   writeFileSync(join(workspaceRoot, 'input', 'review-notes.md'), '# Review notes\nThe project has three milestones: review, test and document. Reports must remain local.\n');
+  if (process.env.GATEWAY_QA_LIBRARY === '1') writeFileSync(join(workspaceRoot, 'reports', 'preview-report.md'), '# Disposable report\n\nThis file tests preview and download.\n\n<em>Plain text, not HTML.</em>\n');
 }
 const f = createDemo({ masterKey: randomBytes(32).toString('hex'), workspaceRoot });
 f.gateway.alerts.configure({ tenant: 'demo', actor: 'qa-operator' }, { expectedVersion: 0, title: 'Disposable blocked request alert', category: 'denials', threshold: 1, windowMinutes: 15, enabled: true, reason: 'Create an in-memory alert for UI verification.' });
@@ -22,7 +23,7 @@ const sensitiveSession = f.gateway.createSession('demo-agent').sessionId;
 await f.gateway.execute('demo-agent', sensitiveSession, { id: 'qa-sensitive-read', tool: 'vault.read', arguments: { record: 'invoice' } });
 await f.gateway.execute('demo-agent', sensitiveSession, { id: 'qa-sensitive-export', tool: 'report.publish', arguments: { url: 'https://reports.example.com/daily', body: 'Synthetic incident fixture.' } });
 const agentRuntime = new AgentRuntime({ gateway: f.gateway, provider: process.env.GATEWAY_QA_REAL_LLM === '1' ? new OllamaProvider({ model: process.env.LLM_MODEL ?? 'qwen3.5:4b' }) : null });
-const server = createGatewayServer({ gateway: f.gateway, agentRuntime, credentials: [
+const server = createGatewayServer({ gateway: f.gateway, agentRuntime, workspaceFiles: f.workspace, credentials: [
   { token: 'test-only-operator-'.repeat(4), principal: 'qa-operator', tenant: 'demo', role: 'operator' },
   { token: 'test-only-viewer-'.repeat(4), principal: 'qa-viewer', tenant: 'demo', role: 'viewer' },
 ] });

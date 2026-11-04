@@ -1,5 +1,11 @@
 # HTTP API and recovery
 
+Template fields: saves accept optional `parameterized`; reads expose `variables`. Operator-only `POST /v1/operator/agent/templates/:id/render` accepts exactly `{expectedRevision,values}` with no query parameters. It validates the current enabled revision, renders/redacts within bounds, audits fingerprints and returns a prompt for review without starting work. SDK: `renderTaskTemplate(id,input)`. See [syntax and limits](template-fields.md).
+
+Task budget additions: task start accepts `taskLimits: {maxTurns,maxToolCalls,maxRunMs}` and `toolMode: "workspace_readonly"`. Limits can only narrow runtime ceilings and are immutable across follow-up/resume; start idempotency binds their effective values. New task session call budgets are attenuated too. Configuration exposes `defaultTaskBudget`; health includes `attemptTimeLimitMs`. See [bounds and recovery semantics](task-budgets.md).
+
+File library: operator-only `GET /v1/operator/workspace` returns source/report metadata; `POST /v1/operator/workspace/reports/read` accepts exactly `{file,expectedHash,purpose}` (`preview` or `download`) and returns verified content after mandatory read audit. Both use the heavy-operation rate budget. SDK: `workspaceFiles()` and `readWorkspaceReport(input)`. See [file library semantics](workspace-library.md).
+
 Workspace additions: task start and prompt templates accept `toolMode: "workspace"`. It grants only the safe reference tools plus `workspace.search`, `workspace.read` and `workspace.report.save` when configured. `activity.phase`/`activity.tool` in task responses describe persisted progress without arguments or model reasoning. Configuration includes `workspace.configured`. Existing execution/approval/resume endpoints handle all workspace calls; see [workspace semantics](workspace-tools.md).
 
 Task health: `GET /v1/operator/agent/runs/:id/health` is operator-only and accepts no query parameters. It returns a read-only snapshot of budgets, expiry, follow-up blockers, tool restrictions and pending approval metadata without prompts or arguments. It never authorizes execution. SDK: `control.agentHealth(id)`. See [semantics and limits](task-health.md).

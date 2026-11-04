@@ -9,6 +9,30 @@ import { Policy } from '../src/policy.js';
 import { digest } from '../src/util.js';
 import { AgentRuntime } from '../src/agent-runtime.js';
 
+test('template render API requires operator ownership, exact fields and current enabled revision', async t => {
+  const f = await host(t, async () => { throw new Error('Must not execute'); }), template = f.agentRuntime.library.saveTemplate('demo', { expectedRevision: 0, title: 'Summary', prompt: 'Summarize {{document}}.', parameterized: true, toolMode: 'safe', enabled: true }, 'reviewer');
+  const path = `/v1/operator/agent/templates/${template.id}/render`, input = { expectedRevision: 1, values: { document: 'notes.md' } };
+  for (const role of ['viewer', 'agent', 'other']) assert.equal((await f.request(path, role, input)).status, 403);
+  const result = await (await f.request(path, 'operator', input)).json(); assert.equal(result.prompt, 'Summarize notes.md.'); assert.equal(result.reviewRequired, true); assert.equal(f.agentRuntime.list('demo').total, 0);
+  for (const bad of [{ ...input, toolMode: 'all' }, { ...input, actor: 'forged' }, { ...input, values: {} }, { ...input, values: { document: 'notes.md', extra: 'no' } }]) assert.equal((await f.request(path, 'operator', bad)).status, 400);
+  assert.equal((await f.request(path + '?execute=true', 'operator', input)).status, 400);
+  f.agentRuntime.library.saveTemplate('demo', { id: template.id, expectedRevision: 1, title: 'Summary', prompt: 'Summarize {{document}}.', parameterized: true, toolMode: 'safe', enabled: false }, 'reviewer');
+  assert.equal((await f.request(path, 'operator', input)).status, 409); assert.equal((await f.request(path, 'operator', { ...input, expectedRevision: 2 })).status, 400);
+  f.agentRuntime.library.saveTemplate('demo', { id: template.id, expectedRevision: 2, title: 'Summary', prompt: 'Summarize {{document}}.', parameterized: true, toolMode: 'safe', enabled: true }, 'reviewer');
+  const append = f.store.append.bind(f.store); f.store.append = () => { throw new Error('Injected audit failure'); };
+  try { const blocked = await f.request(path, 'operator', { expectedRevision: 3, values: { document: 'private-render-input-5571' } }); assert.equal(blocked.status, 503); assert.ok(!(await blocked.text()).includes('private-render-input-5571')); } finally { f.store.append = append; }
+});
+
+test('task budget API validates bounds, binds retries and forbids later limit changes', async t => {
+  const f = await host(t, async () => ({ role: 'assistant', content: 'Generated answer' })), taskLimits = { maxTurns: 2, maxToolCalls: 2, maxRunMs: 60000 }, input = { id: 'budget-api', prompt: 'Hello', toolMode: 'safe', taskLimits };
+  assert.equal((await f.request('/v1/operator/agent/runs', 'viewer', input)).status, 403);
+  assert.equal((await f.request('/v1/operator/agent/runs', 'operator', { ...input, taskLimits: { ...taskLimits, maxTurns: 99 } })).status, 400);
+  assert.equal((await f.request('/v1/operator/agent/runs', 'operator', input)).status, 202); const run = await f.agentRuntime.wait('demo', input.id); assert.equal(run.limits.maxTurns, 2); assert.equal(run.limits.maxToolCalls, 2); assert.equal(run.limits.maxRunMs, 60000);
+  const retry = await f.request('/v1/operator/agent/runs', 'operator', { ...input, taskLimits: { ...taskLimits, maxTurns: 3 } }); assert.equal(retry.status, 400); assert.equal((await retry.json()).code, 'IDEMPOTENCY_CONFLICT');
+  assert.equal((await f.request(`/v1/operator/agent/runs/${run.id}/messages`, 'operator', { messageId: 'new-message', prompt: 'More', expectedRevision: run.revision, taskLimits })).status, 400);
+  assert.equal(f.store.session(run.sessionId).limits.maxCalls, 2);
+});
+
 test('task health API is operator-only, rejects parameters and remains read-only', async t => {
   const f = await host(t, async () => ({ role: 'assistant', content: 'Answer' })); f.agentRuntime.start('demo', { id: 'health-api', prompt: 'Private prompt' }); await f.agentRuntime.wait('demo', 'health-api');
   const path = '/v1/operator/agent/runs/health-api/health', before = f.store.verifyAudit().count;

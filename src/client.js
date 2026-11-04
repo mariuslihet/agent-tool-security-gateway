@@ -35,6 +35,8 @@ function query(path, options = {}) {
   return `${path}${params.size ? '?' + params : ''}`;
 }
 export class ControlPlaneClient extends GatewayClient {
+  workspaceFiles() { return this.request('/v1/operator/workspace', undefined, 'GET'); }
+  readWorkspaceReport(input) { return this.request('/v1/operator/workspace/reports/read', input); }
   agentConfiguration() { return this.request('/v1/operator/agent/config', undefined, 'GET'); }
   checkAgent() { return this.request('/v1/operator/agent/check', {}); }
   startAgent(input) { return this.request('/v1/operator/agent/runs', input); }
@@ -49,6 +51,7 @@ export class ControlPlaneClient extends GatewayClient {
   taskTemplates(options) { return this.request(query('/v1/operator/agent/templates', options), undefined, 'GET'); }
   taskTemplate(id) { return this.request(`/v1/operator/agent/templates/${encodeURIComponent(id)}`, undefined, 'GET'); }
   saveTaskTemplate(input) { return this.request('/v1/operator/agent/templates', input); }
+  renderTaskTemplate(id, input) { return this.request(`/v1/operator/agent/templates/${encodeURIComponent(id)}/render`, input); }
   requests(options) { return this.request(query('/v1/operator/requests', options), undefined, 'GET'); }
   requestDetail(sessionId, requestId) { return this.request(`/v1/operator/requests/${encodeURIComponent(sessionId)}/${encodeURIComponent(requestId)}`, undefined, 'GET'); }
   inspectArguments(sessionId, requestId, reason) { return this.request(`/v1/operator/requests/${encodeURIComponent(sessionId)}/${encodeURIComponent(requestId)}/inspect`, { reason }); }

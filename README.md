@@ -4,7 +4,7 @@
 
 Built with Node.js 24 and its standard library. No runtime dependencies, hosted model, API key, or paid service is required for the demo.
 
-> **Release status: security-focused reference implementation, v0.10.0.** The gateway and its controls are functional; the default publishing and payment tools are simulations. An independent security assessment and deployment-specific isolation are still required before entrusting it with production privileges. See [the threat model](docs/threat-model.md).
+> **Release status: security-focused reference implementation, v0.13.0.** The gateway and its controls are functional; the default publishing and payment tools are simulations. An independent security assessment and deployment-specific isolation are still required before entrusting it with production privileges. See [the threat model](docs/threat-model.md).
 
 ## The operator console
 
@@ -27,6 +27,12 @@ Version 0.8 adds a searchable task library with custom titles, tags, pins, rever
 Version 0.9 adds read-only task health, budget diagnostics, pending approval status, and original-prompt reuse with safe tools selected. See [task health and prompt reuse](docs/task-health.md).
 
 ## Use a real local LLM
+
+Version 0.13 adds reusable template fields such as `{{document}}` and `{{audience}}`, with revision-checked loading, bounded literal substitution and render audit. Fill values, review the completed prompt and explicitly start a task. See [template fields](docs/template-fields.md).
+
+Version 0.12 adds fixed per-task turn/tool/time budgets with Quick and custom controls, plus Workspace read-only mode. Session call limits enforce the selected allowance below host ceilings. See [task budgets and read-only research](docs/task-budgets.md).
+
+Version 0.11 adds a workspace file library: source integrity indicators, saved-report inventory, plain-text previews and verified downloads with read audit. See [workspace library](docs/workspace-library.md).
 
 Version 0.10 adds **real workspace tools**: search/read reviewed local documents and save a report after exact-request approval. Select Workspace mode; activity shows generation, tool work and approval waits. The included input is labeled sample content, while file operations are real. See [workspace setup and limits](docs/workspace-tools.md).
 
@@ -176,6 +182,12 @@ Keep the agent process separate from the gateway. Give only the gateway access t
 - [Version 0.9 verification](docs/verification-v0.9.md)
 - [Real workspace tools and approval workflow](docs/workspace-tools.md)
 - [Version 0.10 verification](docs/verification-v0.10.md)
+- [Workspace file and report library](docs/workspace-library.md)
+- [Version 0.11 verification](docs/verification-v0.11.md)
+- [Task budgets and read-only research](docs/task-budgets.md)
+- [Version 0.12 verification](docs/verification-v0.12.md)
+- [Reusable template fields](docs/template-fields.md)
+- [Version 0.13 verification](docs/verification-v0.13.md)
 - [Security reporting](SECURITY.md)
 
 ## Guidance behind the design

@@ -5,6 +5,7 @@ import { resolve, relative } from 'node:path';
 import { createHash } from 'node:crypto';
 import { assert, digest } from './util.js';
 import { inspect } from './scanners.js';
+import { compareReportText } from './report-diff.js';
 
 export const WORKSPACE_LIMITS = Object.freeze({ maxDocuments: 50, maxDocumentBytes: 8192, maxReportBytes: 8192, maxMatches: 10, maxQueryChars: 128 });
 export const WORKSPACE_LIBRARY_LIMITS = Object.freeze({ maxReportEntries: 100 });
@@ -99,5 +100,13 @@ export function registerWorkspaceTools(registry, { root }) {
     assert(typeof expectedHash === 'string' && /^[a-f0-9]{64}$/.test(expectedHash), 'INVALID_REPORT_HASH');
     const result = await readReport(file); assert(result.sha256 === expectedHash, 'REPORT_CHANGED'); return result;
   }
-  return { documents: documents.map(d => d.name), binding, limits: WORKSPACE_LIMITS, inventory, inspectReport };
+  async function compareReports({ left, right }) {
+    const valid = value => value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).sort().join(',') === 'expectedHash,file';
+    assert(valid(left) && valid(right) && left.file !== right.file, 'INVALID_REPORT_COMPARISON');
+    const a = await inspectReport(left), b = await inspectReport(right), diff = compareReportText(a.content, b.content);
+    const metadata = ({ content, ...rest }) => rest;
+    const result = { left: metadata(a), right: metadata(b), identicalBytes: a.sha256 === b.sha256, ...diff };
+    return { ...result, comparisonHash: digest(result) };
+  }
+  return { documents: documents.map(d => d.name), binding, limits: WORKSPACE_LIMITS, inventory, inspectReport, compareReports };
 }

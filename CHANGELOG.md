@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.16.0 — 2026-11-05
+
+- Added operator-only task review with actual host-grant intersection, selected task/session budgets, advisory capacity blockers and heuristic prompt findings.
+- Labeled outbound tools, simulated adapters and potentially applicable approval rules before task creation.
+- Bound reviewed starts to prompt/model/policy/registry/profile/budget receipts; stale configurations return AGENT_PLAN_CHANGED (HTTP 409) before session creation.
+- Added fingerprint-only review audit events, SDK support and a browser review/start dialog with source-change cleanup and duplicate-start protection.
+- Added regression tests for drift, permissions, audit failure, capacity and zero-execution reviews.
+
+## 0.15.0 — 2026-11-05
+
+- Added saved task acceptance checks for final-answer phrases, completed tools, completion state and denied-call traces.
+- Added independent review revisions, encrypted storage, mandatory fingerprint-only audit and stale review detection after task changes.
+- Added operator check editor, per-rule outcomes, summary badges and JSON snapshot download.
+- Added literal/bounded evaluation, tenant/revision/privacy, audit rollback and encrypted-restart tests.
+
+## 0.14.0 — 2026-11-05
+
+- Added operator-only saved-report comparison with added/removed/unchanged lines, source line numbers and byte/text identity indicators.
+- Added verified comparison receipts and mandatory metadata-only audit before content delivery.
+- Added a plain-text comparison viewer and local snapshot download.
+- Added bounded alignment, stale selection, role/tenant isolation, normalization and audit-failure tests.
+
 ## 0.13.0 — 2026-11-04
 
 - Added opt-in template fields with bounded literal interpolation and dynamically generated console forms.

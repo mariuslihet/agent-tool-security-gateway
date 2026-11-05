@@ -8,6 +8,7 @@ import { randomBytes, createHash } from 'node:crypto';
 import { createDemo } from '../src/demo.js';
 import { createGatewayServer } from '../src/server.js';
 import { ControlPlaneClient } from '../src/client.js';
+import { digest } from '../src/util.js';
 
 function fixture(t) {
   const root = mkdtempSync(join(tmpdir(), 'gateway-library-')); mkdirSync(join(root, 'input')); mkdirSync(join(root, 'reports')); writeFileSync(join(root, 'input', 'notes.md'), 'Reviewed project notes.');
@@ -22,6 +23,35 @@ async function host(t) {
   return { ...f, client: new ControlPlaneClient({ baseUrl, token: tokens.operator }), request: (path, role = 'operator', body) => fetch(baseUrl + path, { method: body ? 'POST' : 'GET', headers: { authorization: `Bearer ${tokens[role]}`, ...(body ? { 'content-type': 'application/json' } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) }) };
 }
 const checksum = value => createHash('sha256').update(value).digest('hex');
+
+test('report comparison API verifies both hashes, audits metadata and leaves files/sessions unchanged', async t => {
+  const f = await host(t), leftText = 'private-left-text-8734\nStatus: draft\n', rightText = 'private-left-text-8734\nStatus: reviewed\n';
+  writeFileSync(join(f.root, 'reports', 'baseline.md'), leftText); writeFileSync(join(f.root, 'reports', 'revised.md'), rightText);
+  const input = { left: { file: 'baseline.md', expectedHash: checksum(leftText) }, right: { file: 'revised.md', expectedHash: checksum(rightText) } }, sessions = f.store.db.prepare('SELECT COUNT(*) AS n FROM sessions').get().n;
+  const result = await f.client.compareWorkspaceReports(input); assert.deepEqual(result.counts, { added: 1, removed: 1, same: 2 }); assert.equal(result.identicalBytes, false);
+  const { comparisonHash, ...receipt } = result; assert.equal(comparisonHash, digest(receipt));
+  const event = f.store.events('demo')[0]; assert.equal(event.type, 'workspace.reports_compared'); assert.equal(event.actor, 'operator'); assert.equal(event.comparisonHash, comparisonHash); assert.ok(!JSON.stringify(event).includes(leftText.split('\n')[0])); assert.ok(!JSON.stringify(event).includes(input.left.file));
+  assert.equal(f.store.db.prepare('SELECT COUNT(*) AS n FROM sessions').get().n, sessions);
+  const files = await f.workspace.inventory(); assert.equal(files.reports.find(file => file.file === input.left.file).sha256, input.left.expectedHash); assert.equal(files.reports.find(file => file.file === input.right.file).sha256, input.right.expectedHash);
+});
+
+test('comparison access is operator/tenant scoped and rejects stale, duplicate and forged selections', async t => {
+  const f = await host(t), text = 'Reviewed report'; writeFileSync(join(f.root, 'reports', 'a.md'), text); writeFileSync(join(f.root, 'reports', 'b.md'), text);
+  const input = { left: { file: 'a.md', expectedHash: checksum(text) }, right: { file: 'b.md', expectedHash: checksum(text) } }, path = '/v1/operator/workspace/reports/compare', before = f.store.verifyAudit().count;
+  for (const role of ['viewer', 'agent']) assert.equal((await f.request(path, role, input)).status, 403);
+  assert.equal((await f.request(path, 'other', input)).status, 400);
+  for (const bad of [{ ...input, right: input.left }, { ...input, actor: 'forged' }, { ...input, left: { ...input.left, root: 'elsewhere' } }, { ...input, right: { ...input.right, file: '../escape.md' } }]) assert.equal((await f.request(path, 'operator', bad)).status, 400);
+  assert.equal((await f.request(path + '?execute=true', 'operator', input)).status, 400);
+  writeFileSync(join(f.root, 'reports', 'b.md'), 'Changed'); const stale = await f.request(path, 'operator', input); assert.equal(stale.status, 400); assert.equal((await stale.json()).code, 'REPORT_CHANGED'); assert.equal(f.store.verifyAudit().count, before);
+});
+
+test('comparison distinguishes byte changes from normalized text and blocks delivery on audit failure', async t => {
+  const f = await host(t), a = 'private-comparison-text-4321\r\n', b = 'private-comparison-text-4321\n'; writeFileSync(join(f.root, 'reports', 'a.md'), a); writeFileSync(join(f.root, 'reports', 'b.md'), b);
+  const input = { left: { file: 'a.md', expectedHash: checksum(a) }, right: { file: 'b.md', expectedHash: checksum(b) } }, result = await f.client.compareWorkspaceReports(input); assert.equal(result.identicalBytes, false); assert.equal(result.identicalText, true); assert.equal(result.counts.added, 0); assert.equal(result.counts.removed, 0);
+  const append = f.store.append.bind(f.store); f.store.append = () => { throw new Error('Injected audit failure'); };
+  try { const failed = await f.request('/v1/operator/workspace/reports/compare', 'operator', input); assert.equal(failed.status, 503); assert.ok(!(await failed.text()).includes('private-comparison-text-4321')); } finally { f.store.append = append; }
+  const long = '\n'.repeat(400); writeFileSync(join(f.root, 'reports', 'b.md'), long); const limited = await f.request('/v1/operator/workspace/reports/compare', 'operator', { ...input, right: { file: 'b.md', expectedHash: checksum(long) } }); assert.equal(limited.status, 400); assert.equal((await limited.json()).code, 'REPORT_DIFF_LINE_LIMIT');
+});
 
 test('file inventory shows source integrity and bounded report metadata without private contents or audit writes', async t => {
   const f = fixture(t), privateText = 'private-report-body-9834'; writeFileSync(join(f.root, 'reports', 'summary.md'), privateText); writeFileSync(join(f.root, 'reports', '.gitkeep'), '');

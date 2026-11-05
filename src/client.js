@@ -37,12 +37,16 @@ function query(path, options = {}) {
 export class ControlPlaneClient extends GatewayClient {
   workspaceFiles() { return this.request('/v1/operator/workspace', undefined, 'GET'); }
   readWorkspaceReport(input) { return this.request('/v1/operator/workspace/reports/read', input); }
+  compareWorkspaceReports(input) { return this.request('/v1/operator/workspace/reports/compare', input); }
   agentConfiguration() { return this.request('/v1/operator/agent/config', undefined, 'GET'); }
   checkAgent() { return this.request('/v1/operator/agent/check', {}); }
   startAgent(input) { return this.request('/v1/operator/agent/runs', input); }
+  planAgent(input) { return this.request('/v1/operator/agent/plan', input); }
   agentRuns(options) { return this.request(query('/v1/operator/agent/runs', options), undefined, 'GET'); }
   agentRun(id) { return this.request(`/v1/operator/agent/runs/${encodeURIComponent(id)}`, undefined, 'GET'); }
   agentHealth(id) { return this.request(`/v1/operator/agent/runs/${encodeURIComponent(id)}/health`, undefined, 'GET'); }
+  taskChecks(id) { return this.request(`/v1/operator/agent/runs/${encodeURIComponent(id)}/checks`, undefined, 'GET'); }
+  checkTask(id, input) { return this.request(`/v1/operator/agent/runs/${encodeURIComponent(id)}/checks`, input); }
   resumeAgent(id) { return this.request(`/v1/operator/agent/runs/${encodeURIComponent(id)}/resume`, {}); }
   cancelAgent(id) { return this.request(`/v1/operator/agent/runs/${encodeURIComponent(id)}/cancel`, {}); }
   followUpAgent(id, input) { return this.request(`/v1/operator/agent/runs/${encodeURIComponent(id)}/messages`, input); }

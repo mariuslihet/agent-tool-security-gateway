@@ -90,6 +90,15 @@ export function createGatewayServer({ gateway, credentials, metrics, agentRuntim
         if (identity.heavyUsed > heavyRateLimit) { res.setHeader('retry-after', Math.max(1, Math.ceil((identity.reset - clock()) / 1000))); assert(false, 'RATE_LIMITED'); }
       };
       const agent = () => assert(identity.role === 'agent', 'FORBIDDEN');
+      if (path === '/v1/operator/agent/plan' && req.method === 'POST') {
+        operator(); queryOptions(url.searchParams, []); const body = await readBody(req, maxBodyBytes); shape(body, ['prompt', 'toolMode', 'taskLimits'], ['prompt']); assert(agentRuntime, 'LLM_NOT_CONFIGURED'); send(200, agentRuntime.plan(identity.tenant, body, identity.principal)); return;
+      }
+      if (path === '/v1/operator/workspace/reports/compare' && req.method === 'POST') {
+        operator(); heavy(); queryOptions(url.searchParams, []); assert(workspaceFiles?.tenant === identity.tenant, 'WORKSPACE_NOT_CONFIGURED');
+        const body = await readBody(req, maxBodyBytes); shape(body, ['left', 'right'], ['left', 'right']); const result = await workspaceFiles.compareReports(body);
+        gateway.store.transaction(() => gateway.store.append({ type: 'workspace.reports_compared', tenant: identity.tenant, actor: identity.principal, leftFileHash: digest(result.left.file), rightFileHash: digest(result.right.file), leftHash: result.left.sha256, rightHash: result.right.sha256, comparisonHash: result.comparisonHash, counts: result.counts }));
+        send(200, result); return;
+      }
       if (path === '/v1/operator/workspace' && req.method === 'GET') {
         operator(); heavy(); queryOptions(url.searchParams, []);
         send(200, workspaceFiles?.tenant === identity.tenant ? await workspaceFiles.inventory() : { configured: false, inputs: [], reports: [] }); return;
@@ -111,7 +120,7 @@ export function createGatewayServer({ gateway, credentials, metrics, agentRuntim
         operator(); assert(agentRuntime, 'LLM_NOT_CONFIGURED'); send(200, agentRuntime.list(identity.tenant, queryOptions(url.searchParams, ['search', 'state', 'archive', 'pinned', 'limit', 'offset']))); return;
       }
       if (path === '/v1/operator/agent/runs' && req.method === 'POST') {
-        operator(); heavy(); const body = await readBody(req, maxBodyBytes); shape(body, ['id', 'prompt', 'toolMode', 'taskLimits'], ['id', 'prompt']); assert(agentRuntime, 'LLM_NOT_CONFIGURED'); send(202, agentRuntime.start(identity.tenant, body)); return;
+        operator(); heavy(); const body = await readBody(req, maxBodyBytes); shape(body, ['id', 'prompt', 'toolMode', 'taskLimits', 'expectedPlanHash'], ['id', 'prompt']); assert(agentRuntime, 'LLM_NOT_CONFIGURED'); send(202, agentRuntime.start(identity.tenant, body)); return;
       }
       if (path === '/v1/operator/agent/templates' && req.method === 'GET') {
         operator(); assert(agentRuntime, 'LLM_NOT_CONFIGURED'); send(200, agentRuntime.library.templates(identity.tenant, queryOptions(url.searchParams, ['enabled']))); return;
@@ -124,7 +133,12 @@ export function createGatewayServer({ gateway, credentials, metrics, agentRuntim
       const templateRender = /^\/v1\/operator\/agent\/templates\/([a-zA-Z0-9_-]{1,96})\/render$/.exec(path);
       if (templateRender && req.method === 'POST') { operator(); queryOptions(url.searchParams, []); assert(agentRuntime, 'LLM_NOT_CONFIGURED'); const body = await readBody(req, maxBodyBytes); shape(body, ['expectedRevision', 'values'], ['expectedRevision', 'values']); send(200, agentRuntime.library.renderTemplate(identity.tenant, templateRender[1], body, identity.principal)); return; }
       if (templatePath && req.method === 'GET') { operator(); queryOptions(url.searchParams, []); assert(agentRuntime, 'LLM_NOT_CONFIGURED'); send(200, agentRuntime.library.template(identity.tenant, templatePath[1])); return; }
-      const agentRun = /^\/v1\/operator\/agent\/runs\/([a-zA-Z0-9_-]{1,96})(?:\/(resume|cancel|messages|export|organize|health))?$/.exec(path);
+      const agentRun = /^\/v1\/operator\/agent\/runs\/([a-zA-Z0-9_-]{1,96})(?:\/(resume|cancel|messages|export|organize|health|checks))?$/.exec(path);
+      if (agentRun?.[2] === 'checks') {
+        operator(); queryOptions(url.searchParams, []); assert(agentRuntime, 'LLM_NOT_CONFIGURED');
+        if (req.method === 'GET') { send(200, agentRuntime.checks.get(identity.tenant, agentRun[1])); return; }
+        assert(req.method === 'POST', 'INVALID_REQUEST'); heavy(); const body = await readBody(req, maxBodyBytes); shape(body, ['expectedRevision', 'expectedTaskRevision', 'criteria'], ['expectedRevision', 'expectedTaskRevision', 'criteria']); send(200, agentRuntime.checks.evaluate(identity.tenant, agentRun[1], body, identity.principal)); return;
+      }
       if (agentRun?.[2] === 'health') { operator(); assert(req.method === 'GET', 'INVALID_REQUEST'); queryOptions(url.searchParams, []); assert(agentRuntime, 'LLM_NOT_CONFIGURED'); send(200, agentRuntime.health(identity.tenant, agentRun[1])); return; }
       if (agentRun && req.method === 'GET' && !agentRun[2]) { operator(); queryOptions(url.searchParams, []); assert(agentRuntime, 'LLM_NOT_CONFIGURED'); send(200, agentRuntime.get(identity.tenant, agentRun[1])); return; }
       if (agentRun && req.method === 'POST' && agentRun[2]) {
@@ -274,7 +288,7 @@ export function createGatewayServer({ gateway, credentials, metrics, agentRuntim
       send(404, { code: 'NOT_FOUND' });
     } catch (error) {
       const code = error instanceof GatewayError ? error.code : 'GATEWAY_UNAVAILABLE';
-      const status = code === 'UNAUTHENTICATED' ? 401 : code === 'VERSION_CONFLICT' ? 409 : ['FORBIDDEN', 'ORIGIN_DENIED', 'SELF_APPROVAL_DENIED'].includes(code) ? 403 : code === 'RATE_LIMITED' ? 429 : code === 'PAYLOAD_TOO_LARGE' ? 413 : ['GATEWAY_UNAVAILABLE', 'AUDIT_CORRUPTED', 'STORAGE_INTEGRITY_FAILURE'].includes(code) ? 503 : 400;
+      const status = code === 'UNAUTHENTICATED' ? 401 : ['VERSION_CONFLICT', 'AGENT_PLAN_CHANGED'].includes(code) ? 409 : ['FORBIDDEN', 'ORIGIN_DENIED', 'SELF_APPROVAL_DENIED'].includes(code) ? 403 : code === 'RATE_LIMITED' ? 429 : code === 'PAYLOAD_TOO_LARGE' ? 413 : ['GATEWAY_UNAVAILABLE', 'AUDIT_CORRUPTED', 'STORAGE_INTEGRITY_FAILURE'].includes(code) ? 503 : 400;
       send(status, { code });
     }
   });

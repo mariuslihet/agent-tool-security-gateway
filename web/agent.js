@@ -4,10 +4,16 @@
   let historyTicket = 0, historyOffset = 0, historyNext = null, templateTicket = 0, healthTicket = 0, selectedOrganization = null, selectedTemplate = null;
   let filesTicket = 0, reportTicket = 0;
   let renderTicket = 0, selectedRender = null, templateInputs = [], renderBusy = false;
+  let comparisonTicket = 0, comparisonFiles = [], comparisonBusy = false, comparison = null;
+  let checkTicket = 0, checkReview = null, checkLoadedId = null, checkBinding = null, checkBusy = false, checkServerStale = false;
+  let planTicket = 0, planBusy = false, selectedPlan = null, startBusy = false;
   const liveOperator = () => canChange() && configuration?.configured;
   function clear() {
+    planTicket++; planBusy = false; startBusy = false; selectedPlan = null; $('task-plan-dialog').close(); $('task-plan-output').replaceChildren(); $('task-plan-error').textContent = '';
     ticket++; configTicket++; clearTimeout(polling); polling = null; configuration = null; run = null; pendingFollow = pendingStart = null; followBusy = false;
     historyTicket++; templateTicket++; healthTicket++; historyOffset = 0; historyNext = null; selectedOrganization = selectedTemplate = null;
+    checkTicket++; checkReview = null; checkLoadedId = null; checkBinding = null; checkBusy = false; checkServerStale = false; $('task-check-dialog').close(); $('agent-check-summary').replaceChildren(); $('task-check-output').replaceChildren(); $('task-check-error').textContent = ''; for (const id of ['task-check-required', 'task-check-forbidden', 'task-check-tools']) $(id).value = '';
+    comparisonTicket++; comparisonFiles = []; comparisonBusy = false; comparison = null; $('report-compare-left').replaceChildren(); $('report-compare-right').replaceChildren(); $('report-compare-dialog').close(); $('report-compare-content').textContent = ''; $('report-compare-meta').textContent = ''; $('report-compare-note').textContent = 'Refresh files to select two saved reports.';
     renderTicket++; renderBusy = false; selectedRender = null; templateInputs = []; $('template-values-dialog').close(); $('template-values-fields').replaceChildren(); $('template-values-context').textContent = ''; $('template-values-error').textContent = ''; $('template-kind').value = 'plain';
     filesTicket++; reportTicket++; $('workspace-inputs').replaceChildren(); $('workspace-reports').replaceChildren(); $('workspace-files-note').textContent = 'Connect with operator access to inspect local workspace files.'; $('workspace-files-refresh').disabled = true; $('workspace-report-dialog').close(); $('workspace-report-content').textContent = ''; $('workspace-report-meta').textContent = '';
     $('agent-health').replaceChildren(); $('agent-health-note').textContent = 'Select a task to inspect its current limits and restrictions.'; $('agent-health-refresh').disabled = true;
@@ -25,7 +31,9 @@
   }
   function controls() {
     const busyRun = run && ['queued', 'running'].includes(run.state);
-    $('agent-submit').disabled = !liveOperator() || busyRun; $('agent-check').disabled = !liveOperator(); $('agent-history-refresh').disabled = !canChange();
+    $('agent-plan').disabled = !liveOperator() || busyRun || planBusy || startBusy;
+    $('task-plan-start').disabled = !liveOperator() || !selectedPlan || selectedPlan.result.blockers.length > 0 || busyRun || startBusy;
+    $('agent-submit').disabled = !liveOperator() || busyRun || startBusy; $('agent-check').disabled = !liveOperator(); $('agent-history-refresh').disabled = !canChange();
     $('agent-resume').disabled = !liveOperator() || !run || run.organization?.archived || !['waiting', 'interrupted'].includes(run.state);
     $('agent-cancel').disabled = !canChange() || !run || !['queued', 'running', 'waiting', 'interrupted'].includes(run.state);
     $('agent-follow-submit').disabled = !liveOperator() || followBusy || !run || run.organization?.archived || run.state !== 'completed' || run.turns >= run.limits.maxTurns;
@@ -34,6 +42,11 @@
     $('agent-health-refresh').disabled = !canChange() || !run;
     for (const id of ['agent-template-new', 'task-organization-save', 'task-template-save']) $(id).disabled = !canChange();
     $('template-values-submit').disabled = !canChange() || renderBusy;
+    $('report-compare-submit').disabled = !canChange() || comparisonBusy || comparisonFiles.length < 2;
+    for (const id of ['report-compare-left', 'report-compare-right']) $(id).disabled = !canChange() || comparisonBusy || comparisonFiles.length < 2;
+    $('report-compare-download').disabled = !canChange() || !comparison;
+    $('task-check-submit').disabled = !canChange() || checkBusy || !checkBinding;
+    $('task-check-download').disabled = !canChange() || !checkReview || checkReview.run !== run?.id;
   }
   function render() {
     controls(); if (!run) return;
@@ -48,6 +61,7 @@
     $('agent-follow-note').textContent = run.turns >= run.limits.maxTurns ? 'This task has reached its model-turn budget. Start a new task to continue.' : run.state === 'completed' ? `Continues task ${short(run.id)} · ${run.limits.maxTurns - run.turns} model turns remain · permissions stay ${run.toolMode ?? 'all'}.` : 'Follow-ups are available after the current task completes. Resolve any pending call first.';
     if (run.organization?.archived) $('agent-follow-note').textContent = 'This task is archived. Restore it through Organize before adding another message.';
     const selectedTask = run, organize = button('Organize selected task', 'button secondary', () => editOrganization(selectedTask)); organize.disabled = !canChange(); $('agent-run-info').append(organize);
+    const check = button('Check result', 'button secondary', openChecks); check.disabled = !canChange() || checkBusy || ['queued', 'running'].includes(run.state); $('agent-run-info').append(check); renderCheckSummary();
     const reuse = button('Reuse original prompt', 'button secondary', () => {
       if (!canChange()) return; const original = selectedTask.conversation.find(m => m.role === 'user'); if (!original) return;
       $('agent-prompt').value = original.text; $('agent-tool-mode').value = 'safe'; pendingStart = null; $('agent-prompt').focus();
@@ -65,10 +79,54 @@
     clearTimeout(polling);
     try { const next = await api('/v1/operator/agent/runs/' + encodeURIComponent(id)); if (source !== generation || request !== ticket) return;
       if (run?.id !== next.id) { pendingFollow = null; $('agent-follow-prompt').value = ''; $('agent-health').replaceChildren(); } run = next; render(); loadHealth();
+      if (checkLoadedId !== run.id) { checkLoadedId = run.id; loadChecks(run.id); }
       if (currentPage === 'agent' && ['queued', 'running'].includes(run.state)) polling = setTimeout(() => loadRun(id), 2500);
       else if (currentPage === 'agent') history();
     } catch (error) { if (source === generation && request === ticket) $('agent-error').textContent = userError(error); }
   }
+  function checksStale() { return Boolean(checkReview && (checkServerStale || checkReview.taskRevision !== run?.revision || checkReview.taskState !== run?.state || checkReview.taskCode !== run?.code)); }
+  function renderCheckSummary() {
+    const node = $('agent-check-summary'); node.replaceChildren(); if (!run) return;
+    if (!checkReview || checkReview.run !== run.id) { node.append(el('p', 'No acceptance checks loaded for this task. Use Check result to evaluate the answer and completed tools.', 'small muted')); return; }
+    node.append(badge(checksStale() ? 'Checks stale' : checkReview.passed ? 'Checks passed' : 'Checks failed', checksStale() ? 'amber' : checkReview.passed ? 'green' : 'red'), el('p', `Loaded check revision ${checkReview.revision} · evaluated task revision ${checkReview.taskRevision}${checksStale() ? ' · Re-run against the latest task.' : ''}`, 'small muted'));
+  }
+  async function loadChecks(id) {
+    const source = generation, request = ++checkTicket;
+    try { const result = await api(`/v1/operator/agent/runs/${encodeURIComponent(id)}/checks`); if (source !== generation || request !== checkTicket || run?.id !== id) return; checkReview = result.review; checkServerStale = result.stale; renderCheckSummary(); }
+    catch (error) { if (source === generation && request === checkTicket && run?.id === id) $('agent-check-summary').replaceChildren(el('p', userError(error), 'small muted')); }
+  }
+  function renderCheckOutput() {
+    const node = $('task-check-output'); node.replaceChildren(); if (!checkReview || checkReview.run !== run?.id) return;
+    node.append(el('h3', checksStale() ? 'Saved checks are stale' : checkReview.passed ? 'Configured checks passed' : 'Configured checks failed'), el('p', `Task revision ${checkReview.taskRevision} · check revision ${checkReview.revision} · ${checkReview.checks.filter(item => item.passed).length}/${checkReview.checks.length} passed`, 'small muted'));
+    const labels = { assistant_answer_present: 'Assistant answer present', task_completed: 'Task completed', required_phrase: 'Required phrase', forbidden_phrase_absent: 'Forbidden phrase absent', required_tool_completed: 'Required tool completed', no_denied_tool_calls: 'No denied tool calls' };
+    for (const item of checkReview.checks) { const row = el('p', `${item.passed ? 'PASS' : 'FAIL'} · ${labels[item.kind] ?? item.kind}${item.value ? ` · ${item.value}` : ''}`, 'small wrap'); node.append(row); }
+    controls();
+  }
+  async function openChecks() {
+    if (!canChange() || !run || checkBusy) return; const source = generation, id = run.id, request = ++checkTicket; checkBusy = true; controls();
+    try {
+      const result = await api(`/v1/operator/agent/runs/${encodeURIComponent(id)}/checks`); if (source !== generation || request !== checkTicket || run?.id !== id) return;
+      if (result.currentTaskRevision !== run.revision) { $('agent-error').textContent = 'The task changed. Reload its latest answer before checking it.'; await loadRun(id); return; }
+      checkReview = result.review; checkServerStale = result.stale; checkBinding = { id, taskRevision: run.revision, revision: result.review?.revision ?? 0 };
+      const criteria = result.review?.criteria ?? { requiredPhrases: [], forbiddenPhrases: [], requiredTools: [], requireCompleted: true, rejectDenied: true };
+      $('task-check-required').value = criteria.requiredPhrases.join('\n'); $('task-check-forbidden').value = criteria.forbiddenPhrases.join('\n'); $('task-check-tools').value = criteria.requiredTools.join('\n'); $('task-check-completed').checked = criteria.requireCompleted; $('task-check-denied').checked = criteria.rejectDenied;
+      $('task-check-context').textContent = `${run.organization?.title ?? id} · task revision ${run.revision}`; $('task-check-error').textContent = ''; renderCheckOutput(); renderCheckSummary(); showDialog('task-check-dialog'); $('task-check-dialog').scrollTop = 0;
+    } catch (error) { if (source === generation && request === checkTicket) $('agent-error').textContent = userError(error); }
+    finally { if (source === generation && request === checkTicket) { checkBusy = false; controls(); } }
+  }
+  $('task-check-form').addEventListener('submit', async event => {
+    event.preventDefault(); if (!canChange() || checkBusy || !checkBinding || run?.id !== checkBinding.id) return;
+    const source = generation, binding = checkBinding, request = ++checkTicket, lines = id => $(id).value.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+    const criteria = { requiredPhrases: lines('task-check-required'), forbiddenPhrases: lines('task-check-forbidden'), requiredTools: lines('task-check-tools'), requireCompleted: $('task-check-completed').checked, rejectDenied: $('task-check-denied').checked };
+    checkBusy = true; checkReview = null; checkServerStale = false; renderCheckSummary(); renderCheckOutput(); controls(); $('task-check-error').textContent = '';
+    try {
+      const result = await api(`/v1/operator/agent/runs/${encodeURIComponent(binding.id)}/checks`, { expectedRevision: binding.revision, expectedTaskRevision: binding.taskRevision, criteria });
+      if (source !== generation || request !== checkTicket || run?.id !== binding.id) return; checkReview = result.review; checkServerStale = result.stale; checkBinding.revision = result.review.revision; renderCheckSummary(); renderCheckOutput(); $('task-check-output').scrollIntoView({ block: 'nearest' }); notify('Acceptance checks saved and audited. No model or tool was run.');
+    } catch (error) { if (source === generation && request === checkTicket) $('task-check-error').textContent = error.message === 'VERSION_CONFLICT' ? 'The task or checks changed. Close this form and reopen the latest version.' : error.message === 'INVALID_TASK_CHECKS' ? 'Use up to eight unique phrases per list (128 characters each) and eight valid tool names.' : userError(error); }
+    finally { if (source === generation && request === checkTicket) { checkBusy = false; controls(); } }
+  });
+  $('task-check-download').addEventListener('click', () => { if (!canChange() || !run || checkReview?.run !== run.id) return; const content = JSON.stringify({ schemaVersion: 1, exportedAt: Date.now(), stale: checksStale(), review: checkReview }, null, 2), url = URL.createObjectURL(new Blob([content], { type: 'application/json' })), link = el('a'); link.href = url; link.download = `task-checks-${run.id}.json`; document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); notify('Saved check snapshot downloaded. Its evaluation is audited.'); });
+  $('task-check-dialog').addEventListener('close', () => { checkTicket++; checkBinding = null; checkBusy = false; for (const id of ['task-check-required', 'task-check-forbidden', 'task-check-tools']) $(id).value = ''; $('task-check-context').textContent = ''; $('task-check-error').textContent = ''; $('task-check-output').replaceChildren(); controls(); });
   async function loadHealth() {
     if (!canChange() || !run) return; const id = run.id, source = generation, request = ++healthTicket;
     $('agent-health-note').textContent = 'Checking the current task snapshot…';
@@ -104,13 +162,36 @@
       $('agent-provider').textContent = config.configured ? `${config.model} via local Ollama · ${canChange() ? 'Ready to test the connection.' : 'Operator access is required to generate and view tasks.'}` : 'Ollama is not configured on this gateway. Follow the local setup instructions below.'; controls(); if (canChange()) { await Promise.all([history(), templates(), loadFiles()]); if (run) loadRun(run.id); }
     } catch (error) { if (source === generation) $('agent-error').textContent = userError(error); }
   }
+  const taskDraft = () => ({ prompt: $('agent-prompt').value, toolMode: $('agent-tool-mode').value, taskLimits: { maxTurns: $('agent-budget-turns').valueAsNumber, maxToolCalls: $('agent-budget-calls').valueAsNumber, maxRunMs: $('agent-budget-minutes').valueAsNumber * 60000 } });
+  $('agent-plan').addEventListener('click', async () => {
+    if (!liveOperator() || $('agent-plan').disabled || !$('agent-task-form').reportValidity()) return;
+    const source = generation, request = ++planTicket, draft = taskDraft(); planBusy = true; selectedPlan = null; controls(); $('agent-error').textContent = '';
+    try {
+      const result = await api('/v1/operator/agent/plan', draft); if (source !== generation || request !== planTicket) return;
+      selectedPlan = { draft, result }; const node = $('task-plan-output'); node.replaceChildren();
+      node.append(el('p', result.advisory, 'small muted'), field('Model and mode', `${result.model} · ${result.toolMode}`), field('Task budget', `${result.taskLimits.maxTurns} turns · ${result.taskLimits.maxToolCalls} tool evaluations · ${result.taskLimits.maxRunMs / 1000}s per attempt`), field('Session budget', `${result.sessionLimits.maxCalls} calls · ${result.sessionLimits.maxCost} cost units · ${result.sessionLimits.maxOutputBytes} output bytes`), field('Capacity snapshot', `${result.capacity.active}/${result.capacity.maxActive} active · ${result.capacity.retained}/${result.capacity.maxRuns} retained`));
+      node.append(el('h3', 'Host-granted tools'));
+      for (const tool of result.tools) node.append(el('p', `${tool.name} · ${tool.costUnits} cost unit${tool.costUnits === 1 ? '' : 's'}${tool.egress ? ' · outbound data' : ''}${tool.simulation ? ' · simulation' : ''}${tool.approvalRules.length ? ` · approval rules may apply: ${tool.approvalRules.join(', ')}` : ''}`, 'small wrap'));
+      if (!result.tools.length) node.append(el('p', 'No tool permissions.'));
+      node.append(el('h3', 'Prompt preview'), el('pre', result.redactedPrompt, 'wrap'), el('p', 'Detected secrets are hidden in this preview. The original prompt is sent to your configured local model when you start.', 'small muted'), field('Heuristic findings', result.findings.join(', ') || 'None detected'), field('Current blockers', result.blockers.join(', ') || 'None at review time'), field('Configuration receipt', result.planHash, true));
+      $('task-plan-error').textContent = ''; showDialog('task-plan-dialog');
+    } catch (error) { if (source === generation && request === planTicket) $('agent-error').textContent = userError(error); }
+    finally { if (source === generation && request === planTicket) { planBusy = false; controls(); } }
+  });
+  $('task-plan-start').addEventListener('click', () => {
+    if (!liveOperator() || $('task-plan-start').disabled || !selectedPlan) return;
+    if (JSON.stringify(taskDraft()) !== JSON.stringify(selectedPlan.draft)) { $('task-plan-error').textContent = 'The task draft changed. Close this review and review the latest draft.'; return; }
+    pendingStart = { id: crypto.randomUUID(), ...selectedPlan.draft, expectedPlanHash: selectedPlan.result.planHash }; $('task-plan-dialog').close(); $('agent-task-form').requestSubmit();
+  });
+  $('task-plan-dialog').addEventListener('close', () => { planTicket++; planBusy = false; selectedPlan = null; $('task-plan-output').replaceChildren(); $('task-plan-error').textContent = ''; controls(); });
   $('agent-task-form').addEventListener('submit', async event => {
     event.preventDefault(); if (!liveOperator() || $('agent-submit').disabled) return;
     const source = generation, prompt = $('agent-prompt').value, toolMode = $('agent-tool-mode').value, taskLimits = { maxTurns: $('agent-budget-turns').valueAsNumber, maxToolCalls: $('agent-budget-calls').valueAsNumber, maxRunMs: $('agent-budget-minutes').valueAsNumber * 60000 };
     if (!pendingStart || pendingStart.prompt !== prompt || pendingStart.toolMode !== toolMode || JSON.stringify(pendingStart.taskLimits) !== JSON.stringify(taskLimits)) pendingStart = { id: crypto.randomUUID(), prompt, toolMode, taskLimits };
-    const input = pendingStart; $('agent-submit').disabled = true; $('agent-error').textContent = '';
+    const input = pendingStart; startBusy = true; controls(); $('agent-error').textContent = '';
     try { const next = await api('/v1/operator/agent/runs', input); if (source !== generation) return; pendingStart = null; pendingFollow = null; run = next; render(); await loadRun(input.id); await history(); }
-    catch (error) { if (source === generation) { $('agent-error').textContent = userError(error); controls(); } }
+    catch (error) { if (source === generation) { if (error.message === 'AGENT_PLAN_CHANGED') pendingStart = null; $('agent-error').textContent = error.message === 'AGENT_PLAN_CHANGED' ? 'Configuration changed since review. Review the task again before starting.' : userError(error); controls(); } }
+    finally { if (source === generation) { startBusy = false; controls(); } }
   });
   $('agent-budget-preset').addEventListener('change', () => { const preset = $('agent-budget-preset').value; if (preset === 'custom') return; const values = preset === 'quick' ? [2, 2, 1] : [6, 12, 6]; ['turns', 'calls', 'minutes'].forEach((key, i) => { $('agent-budget-' + key).value = String(values[i]); }); pendingStart = null; });
   for (const key of ['turns', 'calls', 'minutes']) $('agent-budget-' + key).addEventListener('input', () => { $('agent-budget-preset').value = 'custom'; pendingStart = null; });
@@ -143,6 +224,7 @@
   $('agent-history-refresh').addEventListener('click', () => history());
   async function loadFiles() {
     if (!canChange()) return; const source = generation, request = ++filesTicket; $('workspace-files-note').textContent = 'Checking local files…';
+    comparisonTicket++; comparisonBusy = false; comparisonFiles = []; $('report-compare-left').replaceChildren(); $('report-compare-right').replaceChildren(); controls();
     try {
       const result = await api('/v1/operator/workspace'); if (source !== generation || request !== filesTicket) return;
       $('workspace-inputs').replaceChildren(); $('workspace-reports').replaceChildren();
@@ -150,9 +232,34 @@
       for (const item of result.inputs) { const row = el('div', undefined, 'rule-summary'), text = el('div'); text.append(el('strong', item.file, 'wrap'), el('p', item.status === 'verified' ? `${number(item.bytes)} bytes · SHA-256 ${item.sha256}` : 'This source changed or is unavailable. Review it on the host before restarting the gateway.', 'small muted wrap')); row.append(text, badge(item.status, item.status === 'verified' ? 'green' : 'amber')); $('workspace-inputs').append(row); }
       for (const item of result.reports) { const row = el('div', undefined, 'rule-summary'), text = el('div'); text.append(el('strong', item.file, 'wrap'), el('p', `${number(item.bytes)} bytes · SHA-256 ${item.sha256}`, 'small muted wrap')); row.append(text, button('Preview report', 'text-button', () => readReport(item, 'preview')), button('Download report', 'text-button', () => readReport(item, 'download'))); $('workspace-reports').append(row); }
       if (!result.reports.length) $('workspace-reports').append(el('p', 'No readable reports found. Approved report saves appear here after you refresh.', 'muted'));
+      comparisonFiles = result.reports;
+      for (const id of ['report-compare-left', 'report-compare-right']) for (const item of comparisonFiles) { const option = el('option', item.file); option.value = item.file; $(id).append(option); }
+      if (comparisonFiles.length > 1) $('report-compare-right').value = comparisonFiles[1].file;
+      $('report-compare-note').textContent = comparisonFiles.length < 2 ? 'Save two reports under different filenames, then refresh to compare them.' : 'Choose a baseline and a newer report. Comparison reads are audited; neither file is changed.'; controls();
       $('workspace-files-note').textContent = `${result.inputs.length} pinned sources · ${result.reports.length} readable reports${result.skipped ? ` · ${result.skipped} unsupported or unreadable entries skipped` : ''}${result.truncated ? ' · scan limit reached; this list is partial' : ''}. Refresh after saving a report. The folder listing does not prove a file was approved by the gateway.`;
-    } catch (error) { if (source === generation && request === filesTicket) { $('workspace-inputs').replaceChildren(); $('workspace-reports').replaceChildren(); $('workspace-files-note').textContent = userError(error); } }
+    } catch (error) { if (source === generation && request === filesTicket) { $('workspace-inputs').replaceChildren(); $('workspace-reports').replaceChildren(); comparisonFiles = []; controls(); $('workspace-files-note').textContent = userError(error); } }
   }
+  const comparisonText = result => [`--- ${result.left.file}`, `+++ ${result.right.file}`, `Left SHA-256: ${result.left.sha256}`, `Right SHA-256: ${result.right.sha256}`, `Comparison SHA-256: ${result.comparisonHash}`, result.normalization, '', ...result.lines.map(line => `${line.kind === 'added' ? '+' : line.kind === 'removed' ? '-' : ' '} ${line.text}`)].join('\n');
+  const canonicalComparison = value => value === null || typeof value !== 'object' ? JSON.stringify(value) : Array.isArray(value) ? '[' + value.map(canonicalComparison).join(',') + ']' : '{' + Object.keys(value).sort().map(key => JSON.stringify(key) + ':' + canonicalComparison(value[key])).join(',') + '}';
+  $('report-compare-form').addEventListener('submit', async event => {
+    event.preventDefault(); if (!canChange() || comparisonBusy) return;
+    const left = comparisonFiles.find(item => item.file === $('report-compare-left').value), right = comparisonFiles.find(item => item.file === $('report-compare-right').value);
+    if (!left || !right || left.file === right.file) { $('report-compare-note').textContent = 'Choose two different reports.'; return; }
+    const source = generation, request = ++comparisonTicket; comparisonBusy = true; controls(); $('report-compare-note').textContent = 'Reading and verifying both reports…';
+    try {
+      const result = await api('/v1/operator/workspace/reports/compare', { left: { file: left.file, expectedHash: left.sha256 }, right: { file: right.file, expectedHash: right.sha256 } });
+      if (source !== generation || request !== comparisonTicket) return;
+      const { comparisonHash, ...receipt } = result, bytes = new TextEncoder().encode(canonicalComparison(receipt));
+      const hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(byte => byte.toString(16).padStart(2, '0')).join('');
+      if (source !== generation || request !== comparisonTicket) return;
+      if (hash !== comparisonHash || result.left.sha256 !== left.sha256 || result.right.sha256 !== right.sha256 || result.left.file !== left.file || result.right.file !== right.file) throw new Error('REPORT_COMPARISON_CHECKSUM_MISMATCH');
+      comparison = result; $('report-compare-meta').textContent = `${result.left.file} → ${result.right.file} · ${result.counts.added} added · ${result.counts.removed} removed · ${result.counts.same} unchanged · ${result.identicalBytes ? 'identical bytes' : 'different bytes'} · Comparison audited`;
+      $('report-compare-content').textContent = comparisonText(result); $('report-compare-note').textContent = 'Comparison verified and audited. Refresh files before comparing later changes.'; controls(); showDialog('report-compare-dialog');
+    } catch (error) { if (source === generation && request === comparisonTicket) $('report-compare-note').textContent = error.message === 'REPORT_CHANGED' ? 'A report changed since the list was loaded. Refresh files before comparing again.' : error.message === 'REPORT_DIFF_LINE_LIMIT' ? 'A report exceeds the 400-line comparison limit. Download the reports to compare them separately.' : userError(error); }
+    finally { if (source === generation && request === comparisonTicket) { comparisonBusy = false; controls(); } }
+  });
+  $('report-compare-download').addEventListener('click', () => { if (!canChange() || !comparison) return; const url = URL.createObjectURL(new Blob([comparisonText(comparison)], { type: 'text/plain;charset=utf-8' })), link = el('a'); link.href = url; link.download = `comparison-${comparison.left.file}-vs-${comparison.right.file}.txt`; document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); notify('Comparison downloaded as plain text. The comparison read is audited.'); });
+  $('report-compare-dialog').addEventListener('close', () => { comparisonTicket++; comparisonBusy = false; comparison = null; $('report-compare-content').textContent = ''; $('report-compare-meta').textContent = ''; controls(); });
   async function readReport(item, purpose) {
     if (!canChange()) return; const source = generation, request = ++reportTicket;
     try {

@@ -17,4 +17,6 @@ export { OllamaProvider, configuredOllama } from './ollama.js';
 export { AgentRuntime, AGENT_LIMITS, TOOL_MODES, DEFAULT_TASK_BUDGET } from './agent-runtime.js';
 export { TaskLibrary, TASK_LIBRARY_LIMITS } from './task-library.js';
 export { templateVariables, renderPromptTemplate, TEMPLATE_VARIABLE_LIMITS } from './prompt-templates.js';
+export { compareReportText, REPORT_DIFF_LIMITS } from './report-diff.js';
+export { TaskChecks, evaluateTaskChecks, TASK_CHECK_LIMITS, DEFAULT_TASK_CHECKS } from './task-checks.js';
 export { registerWorkspaceTools, WORKSPACE_LIMITS, WORKSPACE_LIBRARY_LIMITS } from './workspace-tools.js';

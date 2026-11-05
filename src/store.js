@@ -46,7 +46,9 @@ export class Store {
         CREATE TABLE IF NOT EXISTS task_organization (id TEXT PRIMARY KEY,tenant TEXT NOT NULL,data TEXT NOT NULL);
         CREATE INDEX IF NOT EXISTS task_organization_tenant ON task_organization(tenant);
         CREATE TABLE IF NOT EXISTS task_templates (id TEXT PRIMARY KEY,tenant TEXT NOT NULL,data TEXT NOT NULL);
-        CREATE INDEX IF NOT EXISTS task_templates_tenant ON task_templates(tenant);`);
+        CREATE INDEX IF NOT EXISTS task_templates_tenant ON task_templates(tenant);
+        CREATE TABLE IF NOT EXISTS task_checks (id TEXT PRIMARY KEY,tenant TEXT NOT NULL,data TEXT NOT NULL);
+        CREATE INDEX IF NOT EXISTS task_checks_tenant ON task_checks(tenant);`);
       this.transaction(() => {
         for (const row of this.db.prepare('SELECT seq,event FROM audit WHERE seq NOT IN (SELECT seq FROM audit_index)').iterate()) this.#index(row.seq, JSON.parse(row.event));
         for (const row of this.db.prepare('SELECT r.session,r.id FROM requests r WHERE NOT EXISTS (SELECT 1 FROM request_index i WHERE i.session=r.session AND i.id=r.id)').iterate()) this.#indexRequest(this.request(row.session, row.id));

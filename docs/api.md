@@ -1,5 +1,9 @@
 # HTTP API and recovery
 
+Task acceptance: operator-only `GET /v1/operator/agent/runs/:id/checks` reads the latest review and stale flag. `POST` accepts exactly `{expectedRevision,expectedTaskRevision,criteria}` and evaluates/saves a snapshot with mandatory audit, using the heavy-operation budget. Neither invokes a model/tool. SDK: `taskChecks(id)` and `checkTask(id,input)`. See [criteria, bounds and review semantics](task-acceptance.md).
+
+Report comparison: operator-only `POST /v1/operator/workspace/reports/compare` accepts exactly `{left:{file,expectedHash},right:{file,expectedHash}}` with no query parameters. Both files are verified before bounded comparison and mandatory audit. SDK: `compareWorkspaceReports(input)`. See [line limits, normalization and snapshot semantics](report-comparison.md).
+
 Template fields: saves accept optional `parameterized`; reads expose `variables`. Operator-only `POST /v1/operator/agent/templates/:id/render` accepts exactly `{expectedRevision,values}` with no query parameters. It validates the current enabled revision, renders/redacts within bounds, audits fingerprints and returns a prompt for review without starting work. SDK: `renderTaskTemplate(id,input)`. See [syntax and limits](template-fields.md).
 
 Task budget additions: task start accepts `taskLimits: {maxTurns,maxToolCalls,maxRunMs}` and `toolMode: "workspace_readonly"`. Limits can only narrow runtime ceilings and are immutable across follow-up/resume; start idempotency binds their effective values. New task session call budgets are attenuated too. Configuration exposes `defaultTaskBudget`; health includes `attemptTimeLimitMs`. See [bounds and recovery semantics](task-budgets.md).
@@ -152,3 +156,9 @@ All endpoints require operator access. `GET /v1/operator/agent/runs` now accepts
 | `POST /v1/operator/agent/templates` | `{id?,expectedRevision,title,prompt,toolMode,enabled}` | Create/update template; version 0 and no ID create a new record |
 
 These operations use the ordinary API rate budget and never start inference. Unknown fields are rejected. Revision conflicts return 409; invalid input, nonterminal archive attempts and template limits return 400; role failures return 403; corrupt/unavailable storage returns 503. Archived tasks must be restored before new follow-ups. See [search, archive and template semantics](task-library.md).
+
+## Task review (v0.16)
+
+Operator-only POST /v1/operator/agent/plan accepts prompt, optional toolMode and optional taskLimits (the same bounds as task creation). Unknown fields and query parameters are rejected. Returns planHash, redactedPrompt, findings, tools with egress/simulation/approvalRules metadata, taskLimits, effective sessionLimits and advisory capacity/blockers. Successful reviews append agent.planned with hashes, never raw prompts. No session or model call is created.
+
+POST /v1/operator/agent/runs optionally accepts expectedPlanHash. A mismatch returns AGENT_PLAN_CHANGED (409) before session creation. New runs expose planHash. Exact idempotent retries bind to the original stored receipt; receipt-less starts remain supported. GatewayClient.planAgent(input) exposes the review endpoint. See [task review semantics](task-review.md).

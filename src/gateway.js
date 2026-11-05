@@ -76,11 +76,15 @@ export class Gateway {
   #checkRevocation(tenant, type, value) {
     assert(!this.store.db.prepare('SELECT value FROM meta WHERE key=?').get(`revoked:${tenant}:${type}:${value}`), 'REVOKED');
   }
-  createRestrictedSession(principal, toolNames, { maxCalls } = {}) {
+  restrictedSessionOptions(principal, toolNames, { maxCalls } = {}) {
     assert(Array.isArray(toolNames) && toolNames.every(name => typeof name === 'string' && this.registry.get(name)), 'INVALID_TOOL_SELECTION');
     assert(maxCalls === undefined || Number.isSafeInteger(maxCalls) && maxCalls > 0, 'INVALID_TASK_BUDGET');
     const profile = this.#profile(principal);
-    return this.createSession(principal, { grants: jsonClone(profile.grants).filter(g => toolNames.includes(g.tool)), ...(maxCalls === undefined ? {} : { limits: { ...profile.limits, maxCalls: Math.min(maxCalls, profile.limits.maxCalls) } }) });
+    return { grants: jsonClone(profile.grants).filter(g => toolNames.includes(g.tool)), limits: { ...profile.limits, maxCalls: Math.min(maxCalls ?? profile.limits.maxCalls, profile.limits.maxCalls) }, profileHash: digest(profile) };
+  }
+  createRestrictedSession(principal, toolNames, options = {}) {
+    const { grants, limits } = this.restrictedSessionOptions(principal, toolNames, options);
+    return this.createSession(principal, { grants, limits });
   }
   createSession(principal, { parentId, grants, limits } = {}) {
     const p = this.#profile(principal);

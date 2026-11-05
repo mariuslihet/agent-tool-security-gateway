@@ -14,6 +14,10 @@ if (process.env.GATEWAY_QA_WORKSPACE === '1') {
   workspaceRoot = mkdtempSync(join(tmpdir(), 'gateway-browser-workspace-')); mkdirSync(join(workspaceRoot, 'input')); mkdirSync(join(workspaceRoot, 'reports'));
   writeFileSync(join(workspaceRoot, 'input', 'review-notes.md'), '# Review notes\nThe project has three milestones: review, test and document. Reports must remain local.\n');
   if (process.env.GATEWAY_QA_LIBRARY === '1') writeFileSync(join(workspaceRoot, 'reports', 'preview-report.md'), '# Disposable report\n\nThis file tests preview and download.\n\n<em>Plain text, not HTML.</em>\n');
+  if (process.env.GATEWAY_QA_COMPARE === '1') {
+    writeFileSync(join(workspaceRoot, 'reports', 'baseline.md'), '# Review summary\nStatus: draft\nMilestones: review, test\n<em>Literal markup</em>\n');
+    writeFileSync(join(workspaceRoot, 'reports', 'revised.md'), '# Review summary\nStatus: reviewed\nMilestones: review, test, document\nNext: approve local report\n<em>Literal markup</em>\n');
+  }
 }
 const f = createDemo({ masterKey: randomBytes(32).toString('hex'), workspaceRoot });
 f.gateway.alerts.configure({ tenant: 'demo', actor: 'qa-operator' }, { expectedVersion: 0, title: 'Disposable blocked request alert', category: 'denials', threshold: 1, windowMinutes: 15, enabled: true, reason: 'Create an in-memory alert for UI verification.' });

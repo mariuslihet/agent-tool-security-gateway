@@ -4,7 +4,9 @@
 
 Built with Node.js 24 and its standard library. No runtime dependencies, hosted model, API key, or paid service is required for the demo.
 
-> **Release status: security-focused reference implementation, v0.13.0.** The gateway and its controls are functional; the default publishing and payment tools are simulations. An independent security assessment and deployment-specific isolation are still required before entrusting it with production privileges. See [the threat model](docs/threat-model.md).
+> **Release status: security-focused reference implementation, v0.16.0.** The gateway and its controls are functional; the default publishing and payment tools are simulations. An independent security assessment and deployment-specific isolation are still required before entrusting it with production privileges. See [the threat model](docs/threat-model.md).
+
+Version 0.16 adds an audited **Review task** workflow: inspect actual host-granted tools, budgets, potential approval rules, simulation/egress labels, prompt findings and capacity before starting. Reviewed starts bind the prompt and configuration to a receipt and reject changes. Review calls never invoke the model or create sessions. See [task review](docs/task-review.md).
 
 ## The operator console
 
@@ -27,6 +29,10 @@ Version 0.8 adds a searchable task library with custom titles, tags, pins, rever
 Version 0.9 adds read-only task health, budget diagnostics, pending approval status, and original-prompt reuse with safe tools selected. See [task health and prompt reuse](docs/task-health.md).
 
 ## Use a real local LLM
+
+Version 0.15 adds task acceptance checks for required/forbidden phrases and successful tool evidence, with encrypted saved reviews, revision checks, stale-result indicators and JSON snapshots. See [task acceptance checks](docs/task-acceptance.md).
+
+Version 0.14 adds saved-report comparison with added/removed line counts, original file hashes, verified comparison receipts and a plain-text snapshot download. See [report comparison](docs/report-comparison.md).
 
 Version 0.13 adds reusable template fields such as `{{document}}` and `{{audience}}`, with revision-checked loading, bounded literal substitution and render audit. Fill values, review the completed prompt and explicitly start a task. See [template fields](docs/template-fields.md).
 
@@ -188,6 +194,11 @@ Keep the agent process separate from the gateway. Give only the gateway access t
 - [Version 0.12 verification](docs/verification-v0.12.md)
 - [Reusable template fields](docs/template-fields.md)
 - [Version 0.13 verification](docs/verification-v0.13.md)
+- [Compare saved reports](docs/report-comparison.md)
+- [Version 0.14 verification](docs/verification-v0.14.md)
+- [Task acceptance checks](docs/task-acceptance.md)
+- [Version 0.16 verification](docs/verification-v0.16.md)
+- [Version 0.15 verification](docs/verification-v0.15.md)
 - [Security reporting](SECURITY.md)
 
 ## Guidance behind the design

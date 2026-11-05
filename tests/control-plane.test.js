@@ -1,5 +1,18 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+
+test('task review API enforces operator access, exact input, stale receipts and mandatory audit', async t => {
+  const f = await host(t, async () => ({ role: 'assistant', content: 'Generated answer' })), path = '/v1/operator/agent/plan', draft = { prompt: 'Hello', toolMode: 'safe' };
+  for (const role of ['viewer', 'agent', 'other']) assert.equal((await f.request(path, role, draft)).status, 403);
+  assert.equal((await f.request(path, 'operator', { ...draft, execute: true })).status, 400);
+  assert.equal((await f.request(path + '?execute=true', 'operator', draft)).status, 400);
+  const response = await f.request(path, 'operator', draft); assert.equal(response.status, 200); const plan = await response.json();
+  assert.equal(f.agentRuntime.list('demo').total, 0);
+  const stale = await f.request('/v1/operator/agent/runs', 'operator', { ...draft, id: 'stale-plan', prompt: 'Changed', expectedPlanHash: plan.planHash }); assert.equal(stale.status, 409); assert.equal((await stale.json()).code, 'AGENT_PLAN_CHANGED');
+  const started = await f.request('/v1/operator/agent/runs', 'operator', { ...draft, id: 'reviewed-plan', expectedPlanHash: plan.planHash }); assert.equal(started.status, 202); assert.equal((await started.json()).planHash, plan.planHash); await f.agentRuntime.wait('demo', 'reviewed-plan');
+  const append = f.store.append.bind(f.store); f.store.append = () => { throw new Error('audit unavailable'); };
+  try { const failed = await f.request(path, 'operator', { prompt: 'private-review-7851' }); assert.equal(failed.status, 503); assert.ok(!(await failed.text()).includes('private-review-7851')); } finally { f.store.append = append; }
+});
 import { once } from 'node:events';
 import { randomBytes } from 'node:crypto';
 import { fixture, report, admin } from './helpers.js';
@@ -8,6 +21,20 @@ import { validatePolicyDocument, previewPolicy } from '../src/policy-lab.js';
 import { Policy } from '../src/policy.js';
 import { digest } from '../src/util.js';
 import { AgentRuntime } from '../src/agent-runtime.js';
+
+test('task acceptance API enforces operator role, strict criteria/revisions and audit-before-delivery', async t => {
+  let calls = 0; const f = await host(t, async () => { calls++; return { role: 'assistant', content: 'The answer is 40.' }; }); f.agentRuntime.start('demo', { id: 'checks-api', prompt: 'Hello' }); const run = await f.agentRuntime.wait('demo', 'checks-api');
+  const path = '/v1/operator/agent/runs/checks-api/checks', criteria = { requiredPhrases: ['40'], forbiddenPhrases: [], requiredTools: [], requireCompleted: true, rejectDenied: true }, input = { expectedRevision: 0, expectedTaskRevision: run.revision, criteria };
+  for (const role of ['viewer', 'agent', 'other']) { assert.equal((await f.request(path, role)).status, 403); assert.equal((await f.request(path, role, input)).status, 403); }
+  assert.equal((await (await f.request(path, 'operator')).json()).review, null);
+  for (const bad of [{ ...input, actor: 'forged' }, { ...input, criteria: { ...criteria, approve: true } }]) assert.equal((await f.request(path, 'operator', bad)).status, 400);
+  assert.equal((await f.request(path + '?execute=true', 'operator', input)).status, 400);
+  const saved = await (await f.request(path, 'operator', input)).json(); assert.equal(saved.review.passed, true); assert.equal(saved.stale, false); assert.equal(calls, 1); assert.equal(f.agentRuntime.get('demo', run.id).revision, run.revision);
+  assert.equal((await f.request(path, 'operator', input)).status, 409);
+  const append = f.store.append.bind(f.store); f.store.append = () => { throw new Error('Injected audit failure'); };
+  try { const failed = await f.request(path, 'operator', { ...input, expectedRevision: 1, criteria: { ...criteria, requiredPhrases: ['private-check-4482'] } }); assert.equal(failed.status, 503); assert.ok(!(await failed.text()).includes('private-check-4482')); } finally { f.store.append = append; }
+  assert.equal((await (await f.request(path, 'operator')).json()).review.revision, 1);
+});
 
 test('template render API requires operator ownership, exact fields and current enabled revision', async t => {
   const f = await host(t, async () => { throw new Error('Must not execute'); }), template = f.agentRuntime.library.saveTemplate('demo', { expectedRevision: 0, title: 'Summary', prompt: 'Summarize {{document}}.', parameterized: true, toolMode: 'safe', enabled: true }, 'reviewer');

@@ -128,3 +128,17 @@ dialog{width:min(510px,calc(100vw - 32px));max-height:calc(100dvh - 48px);overfl
 #task-check-output:not(:empty) { border-top:1px solid var(--line); margin-top:20px; padding-top:16px; }
 #task-check-form label:has(input[type=checkbox]) { display:flex; align-items:center; gap:8px; }
 #task-check-form input[type=checkbox] { width:16px; height:16px; min-height:0; padding:0; }
+
+.number-check-row { min-width:0; border:1px solid var(--line); border-radius:8px; margin:16px 0; padding:12px; }
+.number-check-row legend { padding:0 6px; font-size:13px; }
+.number-check-row .task-budget-grid { grid-template-columns:minmax(0,2fr) repeat(2,minmax(0,1fr)); gap:12px; }
+.number-check-row .task-budget-grid input { max-width:none; }
+@media(max-width:720px) { .number-check-row .task-budget-grid { grid-template-columns:1fr; } }
+
+.upgrade-panel .stack-form > label, #evaluation-editor-dialog label { display:grid; gap:8px; margin:10px 0; }
+#evaluation-editor-dialog textarea { width:100%; }
+#evaluation-editor-dialog .code-editor { min-height:160px; }
+.upgrade-panel { scroll-margin-top:24px; }
+
+#evaluation-editor-dialog label:has(input[type=checkbox]) { display:flex; align-items:center; gap:8px; }
+#evaluation-editor-dialog input[type=checkbox] { width:16px; height:16px; min-height:0; padding:0; margin:0; }

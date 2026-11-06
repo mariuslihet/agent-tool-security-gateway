@@ -6,9 +6,11 @@
   let renderTicket = 0, selectedRender = null, templateInputs = [], renderBusy = false;
   let comparisonTicket = 0, comparisonFiles = [], comparisonBusy = false, comparison = null;
   let checkTicket = 0, checkReview = null, checkLoadedId = null, checkBinding = null, checkBusy = false, checkServerStale = false;
+  let numericInputs = [], numberSerial = 0;
   let planTicket = 0, planBusy = false, selectedPlan = null, startBusy = false;
   const liveOperator = () => canChange() && configuration?.configured;
   function clear() {
+    resetStructuredChecks();
     planTicket++; planBusy = false; startBusy = false; selectedPlan = null; $('task-plan-dialog').close(); $('task-plan-output').replaceChildren(); $('task-plan-error').textContent = '';
     ticket++; configTicket++; clearTimeout(polling); polling = null; configuration = null; run = null; pendingFollow = pendingStart = null; followBusy = false;
     historyTicket++; templateTicket++; healthTicket++; historyOffset = 0; historyNext = null; selectedOrganization = selectedTemplate = null;
@@ -46,10 +48,12 @@
     for (const id of ['report-compare-left', 'report-compare-right']) $(id).disabled = !canChange() || comparisonBusy || comparisonFiles.length < 2;
     $('report-compare-download').disabled = !canChange() || !comparison;
     $('task-check-submit').disabled = !canChange() || checkBusy || !checkBinding;
+    for (const input of $('task-check-form').querySelectorAll('input,textarea,button')) if (input.id !== 'task-check-submit') input.disabled = !canChange() || checkBusy;
+    $('task-check-number-add').disabled = !canChange() || checkBusy || numericInputs.length >= 8;
     $('task-check-download').disabled = !canChange() || !checkReview || checkReview.run !== run?.id;
   }
   function render() {
-    controls(); if (!run) return;
+    controls(); window.dispatchEvent(new CustomEvent('gateway:task-selected', { detail: { id: run?.id ?? null } })); if (!run) return;
     $('agent-state').textContent = run.state; $('agent-state').className = `badge ${run.state === 'completed' ? 'green' : ['failed', 'stopped'].includes(run.state) ? 'red' : 'amber'}`;
     $('agent-run-status').textContent = `${run.organization?.title ?? short(run.id)} · ${run.model} · ${run.turns} model turns · ${run.toolCalls} tool calls · ${run.code}`;
     const phases = { queued: 'Starting task', model_generation: 'Local model generating', tool_execution: 'Gateway evaluating or executing tool', waiting: 'Waiting for a separate operator decision', interrupted: 'Interrupted; inspect before resuming', completed: 'Task completed', failed: 'Task failed', stopped: 'Task stopped' };
@@ -98,8 +102,8 @@
   function renderCheckOutput() {
     const node = $('task-check-output'); node.replaceChildren(); if (!checkReview || checkReview.run !== run?.id) return;
     node.append(el('h3', checksStale() ? 'Saved checks are stale' : checkReview.passed ? 'Configured checks passed' : 'Configured checks failed'), el('p', `Task revision ${checkReview.taskRevision} · check revision ${checkReview.revision} · ${checkReview.checks.filter(item => item.passed).length}/${checkReview.checks.length} passed`, 'small muted'));
-    const labels = { assistant_answer_present: 'Assistant answer present', task_completed: 'Task completed', required_phrase: 'Required phrase', forbidden_phrase_absent: 'Forbidden phrase absent', required_tool_completed: 'Required tool completed', no_denied_tool_calls: 'No denied tool calls' };
-    for (const item of checkReview.checks) { const row = el('p', `${item.passed ? 'PASS' : 'FAIL'} · ${labels[item.kind] ?? item.kind}${item.value ? ` · ${item.value}` : ''}`, 'small wrap'); node.append(row); }
+    const labels = { assistant_answer_present: 'Assistant answer present', task_completed: 'Task completed', required_phrase: 'Required phrase', forbidden_phrase_absent: 'Forbidden phrase absent', required_tool_completed: 'Required tool completed', no_denied_tool_calls: 'No denied tool calls', json_object_answer: 'Unambiguous JSON object answer', number_in_range: 'Number within range' };
+    for (const item of checkReview.checks) { const detail = item.kind === 'number_in_range' ? `${item.value.path} · expected ${item.value.min} to ${item.value.max} · actual ${item.value.actual === null ? 'missing or invalid' : item.value.actual}` : item.value; const row = el('p', `${item.passed ? 'PASS' : 'FAIL'} · ${labels[item.kind] ?? item.kind}${detail ? ` · ${detail}` : ''}`, 'small wrap'); node.append(row); }
     controls();
   }
   async function openChecks() {
@@ -110,23 +114,42 @@
       checkReview = result.review; checkServerStale = result.stale; checkBinding = { id, taskRevision: run.revision, revision: result.review?.revision ?? 0 };
       const criteria = result.review?.criteria ?? { requiredPhrases: [], forbiddenPhrases: [], requiredTools: [], requireCompleted: true, rejectDenied: true };
       $('task-check-required').value = criteria.requiredPhrases.join('\n'); $('task-check-forbidden').value = criteria.forbiddenPhrases.join('\n'); $('task-check-tools').value = criteria.requiredTools.join('\n'); $('task-check-completed').checked = criteria.requireCompleted; $('task-check-denied').checked = criteria.rejectDenied;
+      resetStructuredChecks(criteria.structuredOutput);
       $('task-check-context').textContent = `${run.organization?.title ?? id} · task revision ${run.revision}`; $('task-check-error').textContent = ''; renderCheckOutput(); renderCheckSummary(); showDialog('task-check-dialog'); $('task-check-dialog').scrollTop = 0;
     } catch (error) { if (source === generation && request === checkTicket) $('agent-error').textContent = userError(error); }
     finally { if (source === generation && request === checkTicket) { checkBusy = false; controls(); } }
   }
+  function addNumberCheck(rule = { path: '', min: 0, max: 0 }) {
+    if (numericInputs.length >= 8) return;
+    const row = el('fieldset', undefined, 'number-check-row'), serial = ++numberSerial; row.append(el('legend', `Number check ${serial}`));
+    const grid = el('div', undefined, 'task-budget-grid'), entry = { row };
+    for (const [key, title] of [['path', 'Number field'], ['min', 'Minimum'], ['max', 'Maximum']]) {
+      const label = el('label', title), input = el('input'); input.type = key === 'path' ? 'text' : 'number'; input.required = true; input.value = String(rule[key]); input.setAttribute('aria-label', `${title} ${serial}`);
+      if (key === 'path') { input.maxLength = 128; input.placeholder = 'total or invoice.total'; } else input.step = 'any';
+      label.append(input); grid.append(label); entry[key] = input;
+    }
+    row.append(grid, button(`Remove number check ${serial}`, 'text-button', () => { if (!canChange() || checkBusy) return; row.remove(); numericInputs = numericInputs.filter(item => item !== entry); controls(); }));
+    numericInputs.push(entry); $('task-check-numbers').append(row);
+  }
+  function resetStructuredChecks(value) {
+    numericInputs = []; numberSerial = 0; $('task-check-json').checked = value?.required ?? false; $('task-check-numbers').replaceChildren();
+    for (const rule of value?.numbers ?? []) addNumberCheck(rule);
+  }
+  $('task-check-number-add').addEventListener('click', () => { if (!canChange() || checkBusy) return; addNumberCheck(); controls(); numericInputs.at(-1)?.path.focus(); });
   $('task-check-form').addEventListener('submit', async event => {
     event.preventDefault(); if (!canChange() || checkBusy || !checkBinding || run?.id !== checkBinding.id) return;
     const source = generation, binding = checkBinding, request = ++checkTicket, lines = id => $(id).value.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
     const criteria = { requiredPhrases: lines('task-check-required'), forbiddenPhrases: lines('task-check-forbidden'), requiredTools: lines('task-check-tools'), requireCompleted: $('task-check-completed').checked, rejectDenied: $('task-check-denied').checked };
+    if ($('task-check-json').checked || numericInputs.length) criteria.structuredOutput = { required: $('task-check-json').checked, numbers: numericInputs.map(row => ({ path: row.path.value.trim(), min: row.min.valueAsNumber, max: row.max.valueAsNumber })) };
     checkBusy = true; checkReview = null; checkServerStale = false; renderCheckSummary(); renderCheckOutput(); controls(); $('task-check-error').textContent = '';
     try {
       const result = await api(`/v1/operator/agent/runs/${encodeURIComponent(binding.id)}/checks`, { expectedRevision: binding.revision, expectedTaskRevision: binding.taskRevision, criteria });
       if (source !== generation || request !== checkTicket || run?.id !== binding.id) return; checkReview = result.review; checkServerStale = result.stale; checkBinding.revision = result.review.revision; renderCheckSummary(); renderCheckOutput(); $('task-check-output').scrollIntoView({ block: 'nearest' }); notify('Acceptance checks saved and audited. No model or tool was run.');
-    } catch (error) { if (source === generation && request === checkTicket) $('task-check-error').textContent = error.message === 'VERSION_CONFLICT' ? 'The task or checks changed. Close this form and reopen the latest version.' : error.message === 'INVALID_TASK_CHECKS' ? 'Use up to eight unique phrases per list (128 characters each) and eight valid tool names.' : userError(error); }
+    } catch (error) { if (source === generation && request === checkTicket) $('task-check-error').textContent = error.message === 'VERSION_CONFLICT' ? 'The task or checks changed. Close this form and reopen the latest version.' : error.message === 'INVALID_TASK_CHECKS' ? 'Check the criteria: up to eight phrases, tools and unique number fields. Number bounds must be finite, minimum no greater than maximum; use simple field names or dot-separated nested names.' : userError(error); }
     finally { if (source === generation && request === checkTicket) { checkBusy = false; controls(); } }
   });
   $('task-check-download').addEventListener('click', () => { if (!canChange() || !run || checkReview?.run !== run.id) return; const content = JSON.stringify({ schemaVersion: 1, exportedAt: Date.now(), stale: checksStale(), review: checkReview }, null, 2), url = URL.createObjectURL(new Blob([content], { type: 'application/json' })), link = el('a'); link.href = url; link.download = `task-checks-${run.id}.json`; document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); notify('Saved check snapshot downloaded. Its evaluation is audited.'); });
-  $('task-check-dialog').addEventListener('close', () => { checkTicket++; checkBinding = null; checkBusy = false; for (const id of ['task-check-required', 'task-check-forbidden', 'task-check-tools']) $(id).value = ''; $('task-check-context').textContent = ''; $('task-check-error').textContent = ''; $('task-check-output').replaceChildren(); controls(); });
+  $('task-check-dialog').addEventListener('close', () => { resetStructuredChecks(); checkTicket++; checkBinding = null; checkBusy = false; for (const id of ['task-check-required', 'task-check-forbidden', 'task-check-tools']) $(id).value = ''; $('task-check-context').textContent = ''; $('task-check-error').textContent = ''; $('task-check-output').replaceChildren(); controls(); });
   async function loadHealth() {
     if (!canChange() || !run) return; const id = run.id, source = generation, request = ++healthTicket;
     $('agent-health-note').textContent = 'Checking the current task snapshot…';
@@ -327,6 +350,7 @@
   $('template-values-dialog').addEventListener('close', () => { renderTicket++; renderBusy = false; selectedRender = null; templateInputs = []; $('template-values-fields').replaceChildren(); $('template-values-context').textContent = ''; $('template-values-error').textContent = ''; controls(); });
   $('task-organization-dialog').addEventListener('close', () => { selectedOrganization = null; $('task-title').value = ''; $('task-tags').value = ''; });
   $('task-template-dialog').addEventListener('close', () => { selectedTemplate = null; $('template-title').value = ''; $('template-prompt').value = ''; });
+  window.addEventListener('gateway:open-task', event => { if (canChange() && event.detail?.id) loadRun(event.detail.id); });
   window.addEventListener('gateway:source-cleared', clear);
   window.addEventListener('gateway:workspace', () => { if (!configuration && currentPage === 'agent') loadConfig(); });
   window.addEventListener('hashchange', () => { clearTimeout(polling); if (currentPage === 'agent') loadConfig(); });

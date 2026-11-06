@@ -41,6 +41,18 @@ export class ControlPlaneClient extends GatewayClient {
   agentConfiguration() { return this.request('/v1/operator/agent/config', undefined, 'GET'); }
   checkAgent() { return this.request('/v1/operator/agent/check', {}); }
   startAgent(input) { return this.request('/v1/operator/agent/runs', input); }
+  evaluationSuites() { return this.request('/v1/operator/evaluations/suites'); }
+  saveEvaluationSuite(input) { return this.request('/v1/operator/evaluations/suites', input); }
+  startEvaluation(input) { return this.request('/v1/operator/evaluations/runs', input); }
+  evaluationSuite(id) { return this.request('/v1/operator/evaluations/suites/' + encodeURIComponent(id)); }
+  evaluationRuns() { return this.request('/v1/operator/evaluations/runs'); }
+  cancelEvaluation(id) { return this.request('/v1/operator/evaluations/runs/' + encodeURIComponent(id) + '/cancel', {}); }
+  evaluationRun(id) { return this.request('/v1/operator/evaluations/runs/' + encodeURIComponent(id)); }
+  compareEvaluations(input) { return this.request('/v1/operator/evaluations/compare', input); }
+  exportEvaluation(id, format = 'json') { return this.request('/v1/operator/evaluations/runs/' + encodeURIComponent(id) + '/export', { format }); }
+  taskTimeline(id) { return this.request('/v1/operator/agent/runs/' + encodeURIComponent(id) + '/timeline'); }
+  diagnostics() { return this.request('/v1/operator/diagnostics', {}); }
+  compareRecordedPolicy(input) { return this.request('/v1/operator/policy/compare-recorded', input); }
   planAgent(input) { return this.request('/v1/operator/agent/plan', input); }
   agentRuns(options) { return this.request(query('/v1/operator/agent/runs', options), undefined, 'GET'); }
   agentRun(id) { return this.request(`/v1/operator/agent/runs/${encodeURIComponent(id)}`, undefined, 'GET'); }

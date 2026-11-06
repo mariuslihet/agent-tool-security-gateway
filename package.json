@@ -1,6 +1,6 @@
 {
   "name": "agent-tool-security-gateway",
-  "version": "0.16.0",
+  "version": "0.19.0",
   "description": "Deterministic, stateful authorization and execution gateway for AI agent tools",
   "type": "module",
   "private": true,

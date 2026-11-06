@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.19.0 — 2026-11-06
+
+- Added visual suite criteria for required/forbidden phrases, successful tools, completion/denial rules, JSON answers and up to eight nested numeric ranges.
+- Preserved advanced JSON editing with synchronized visual controls and stable case references kept in advanced details.
+- Added operator-only JSON/CSV evaluation exports with mandatory hash-only audit events, UTF-8 SHA-256 checksums, no prompts/hidden suite snapshots and spreadsheet formula protection.
+- Added reviewable metadata rows for CSV snapshots with no completed cases, an SDK export helper and browser checksum verification before download.
+
+## 0.18.0 — 2026-11-06
+
+- Added real fixed-query SQLite connectors with named bound parameters, sensitive-by-default outputs, file identity pinning, worker deadlines and bounded responses. An exclusive example generator creates a real fixture database without changing existing files.
+- Added read-only task mode and reusable encrypted/revisioned evaluation suites: sequential real model tasks, acceptance evidence, per-case task links, cancellation, configuration receipts and audited run comparisons.
+- Added non-executing candidate-policy comparisons against recorded effective arguments, with explicit hypothetical context and historical outcomes shown separately.
+- Added authenticated metadata-only task timelines, including model-turn events committed atomically with task state, and fresh operational diagnostics with recovery hints.
+- Added whole-database encrypted backups, separate passphrase verification and restore into new databases. CLI restore never overwrites the live source or automatically resumes recovered tasks.
+- Added console workflows, SDK helpers, security reviews and regression tests for cancellation interleavings, tenant isolation, audit failure, readonly boundaries and recovery.
+
+## 0.17.0 — 2026-11-06
+
+- Added optional JSON object requirements and up to eight exact/range checks on numeric answer fields, including nested objects.
+- Rejects ambiguous duplicate keys, excessive JSON nesting, missing fields, numeric strings, nonfinite and out-of-range numbers.
+- Added a visual number-check editor with expected/actual evidence, encrypted saved criteria and backward compatibility with existing reviews.
+- Added evaluator, privacy/rollback and API regression coverage; verified with actual Ollama tool use and browser pass/fail checks.
+
 ## 0.16.0 — 2026-11-05
 
 - Added operator-only task review with actual host-grant intersection, selected task/session budgets, advisory capacity blockers and heuristic prompt findings.

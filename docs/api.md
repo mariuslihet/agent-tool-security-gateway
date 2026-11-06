@@ -162,3 +162,21 @@ These operations use the ordinary API rate budget and never start inference. Unk
 Operator-only POST /v1/operator/agent/plan accepts prompt, optional toolMode and optional taskLimits (the same bounds as task creation). Unknown fields and query parameters are rejected. Returns planHash, redactedPrompt, findings, tools with egress/simulation/approvalRules metadata, taskLimits, effective sessionLimits and advisory capacity/blockers. Successful reviews append agent.planned with hashes, never raw prompts. No session or model call is created.
 
 POST /v1/operator/agent/runs optionally accepts expectedPlanHash. A mismatch returns AGENT_PLAN_CHANGED (409) before session creation. New runs expose planHash. Exact idempotent retries bind to the original stored receipt; receipt-less starts remain supported. GatewayClient.planAgent(input) exposes the review endpoint. See [task review semantics](task-review.md).
+
+## Structured answer checks (v0.17)
+
+The existing operator task-check endpoint and SDK checkTask method accept optional criteria.structuredOutput with exactly required (boolean) and numbers (array, up to eight). Each number rule has exactly path, min and max. Bounds are finite numbers within the safe integer magnitude range with min <= max. Duplicate or unsupported paths and unknown fields return INVALID_TASK_CHECKS. Existing criteria remain compatible.
+
+Results add json_object_answer and number_in_range entries. Numeric entries contain value: {path,min,max,actual}; actual is null for missing, invalid, nonnumeric or out-of-range values. Ranges are inclusive; a number outside the requested range retains its actual value for explanation. Review hashes, encryption, heavy-operation limits and mandatory auditing are unchanged. See [structured semantics](task-acceptance.md#structured-answer-and-number-checks).
+
+## Operator upgrade (v0.18)
+
+Operator-only evaluation suite/run/comparison endpoints are documented in [evaluations](evaluations.md). Task creation and templates now accept readonly mode: safe internal tools, reviewed workspace reads and host-configured database tools, without report saves or outbound simulations. Existing safe mode remains the default.
+
+POST /v1/operator/policy/compare-recorded accepts {policy,limit?} (1–50). GET /v1/operator/agent/runs/:id/timeline returns up to 100 authenticated metadata events. POST /v1/operator/diagnostics accepts an empty object and checks availability without inference. Unknown query/body fields are rejected. Comparison/diagnostic mutations require mandatory audit and use the heavy budget. See [scope and response semantics](operator-insights.md).
+
+Backup, verify-backup and restore-backup are host CLI commands; there is no HTTP database archive endpoint. Connector paths, SQL and classification are host configuration only. SDK helpers expose evaluations, timelines, diagnostics and policy comparisons.
+
+## Evaluation exports (v0.19)
+
+POST /v1/operator/evaluations/runs/:id/export accepts exactly format=json or format=csv in its JSON body. Operator role, tenant ownership, no query parameters, heavy-operation rate limits and mandatory auditing apply. Returns content, UTF-8 SHA-256 contentHash, mediaType, format, exportedAt and scope. SDK: exportEvaluation(id,format). See [snapshot and CSV semantics](evaluations.md#visual-criteria-and-result-exports).

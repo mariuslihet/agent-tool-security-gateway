@@ -52,7 +52,7 @@ export class TaskLibrary {
     const { id, expectedRevision, title, prompt, toolMode, enabled, parameterized } = input;
     assert(isActor(actor) && titleValid(title) && Number.isSafeInteger(expectedRevision) && expectedRevision >= 0
       && typeof prompt === 'string' && prompt.trim().length > 0 && prompt.length <= TASK_LIBRARY_LIMITS.maxPromptChars && !prompt.includes('\0')
-      && ['safe', 'chat_only', 'workspace_readonly', 'workspace', 'all'].includes(toolMode) && typeof enabled === 'boolean' && (parameterized === undefined || typeof parameterized === 'boolean') && (id === undefined || isId(id)), 'INVALID_TEMPLATE');
+      && ['safe', 'chat_only', 'readonly', 'workspace_readonly', 'workspace', 'all'].includes(toolMode) && typeof enabled === 'boolean' && (parameterized === undefined || typeof parameterized === 'boolean') && (id === undefined || isId(id)), 'INVALID_TEMPLATE');
     return this.store.transaction(() => {
       const previous = id ? this.template(tenant, id) : null; assert((previous?.revision ?? 0) === expectedRevision, 'VERSION_CONFLICT');
       if (!previous) assert(this.templates(tenant).items.length < TASK_LIBRARY_LIMITS.maxTemplates, 'TEMPLATE_LIMIT');

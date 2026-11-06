@@ -7,6 +7,7 @@ import { validatePolicyDocument, previewPolicy, runPolicySuite } from './policy-
 import { VERSION } from './version.js';
 import { buildWorkspaceReport } from './investigation.js';
 import { workspaceHealth } from './workspace-health.js';
+import { compareRecordedPolicy, taskTimeline, operationalDiagnostics } from './operator-insights.js';
 
 const assets = new Map([
   ['/', ['text/html; charset=utf-8', readFileSync(new URL('../web/index.html', import.meta.url))]],
@@ -15,6 +16,7 @@ const assets = new Map([
   ['/insights.js', ['text/javascript; charset=utf-8', readFileSync(new URL('../web/insights.js', import.meta.url))]],
   ['/containment.js', ['text/javascript; charset=utf-8', readFileSync(new URL('../web/containment.js', import.meta.url))]],
   ['/agent.js', ['text/javascript; charset=utf-8', readFileSync(new URL('../web/agent.js', import.meta.url))]],
+  ['/upgrade.js', ['text/javascript; charset=utf-8', readFileSync(new URL('../web/upgrade.js', import.meta.url))]],
   ['/style.css', ['text/css; charset=utf-8', readFileSync(new URL('../web/style.css', import.meta.url))]],
   ['/preview.json', ['application/json; charset=utf-8', readFileSync(new URL('../web/preview.json', import.meta.url))]],
   ['/regression.json', ['application/json; charset=utf-8', readFileSync(new URL('../policies/regression.json', import.meta.url))]],
@@ -90,6 +92,33 @@ export function createGatewayServer({ gateway, credentials, metrics, agentRuntim
         if (identity.heavyUsed > heavyRateLimit) { res.setHeader('retry-after', Math.max(1, Math.ceil((identity.reset - clock()) / 1000))); assert(false, 'RATE_LIMITED'); }
       };
       const agent = () => assert(identity.role === 'agent', 'FORBIDDEN');
+      if (path === '/v1/operator/diagnostics' && req.method === 'POST') {
+        operator(); heavy(); queryOptions(url.searchParams, []); shape(await readBody(req, maxBodyBytes), []);
+        send(200, await operationalDiagnostics({ gateway, agentRuntime, workspaceFiles, tenant: identity.tenant, actor: identity.principal })); return;
+      }
+      if (path === '/v1/operator/policy/compare-recorded' && req.method === 'POST') {
+        operator(); heavy(); queryOptions(url.searchParams, []); const body = await readBody(req, maxBodyBytes); shape(body, ['policy', 'limit'], ['policy']);
+        send(200, compareRecordedPolicy(gateway, identity.tenant, body, identity.principal)); return;
+      }
+      if (path.startsWith('/v1/operator/evaluations/')) {
+        operator(); queryOptions(url.searchParams, []); assert(agentRuntime, 'LLM_NOT_CONFIGURED'); const evaluations = agentRuntime.evaluations;
+        if (path === '/v1/operator/evaluations/suites') {
+          if (req.method === 'GET') { send(200, { items: evaluations.suites(identity.tenant) }); return; }
+          if (req.method === 'POST') { heavy(); const body = await readBody(req, maxBodyBytes); shape(body, ['id', 'expectedRevision', 'title', 'cases'], ['expectedRevision', 'title', 'cases']); send(200, evaluations.save(identity.tenant, body, identity.principal)); return; }
+        }
+        if (path === '/v1/operator/evaluations/runs') {
+          if (req.method === 'GET') { send(200, { items: evaluations.list(identity.tenant) }); return; }
+          if (req.method === 'POST') { heavy(); const body = await readBody(req, maxBodyBytes); shape(body, ['id', 'suiteId', 'expectedRevision'], ['id', 'suiteId', 'expectedRevision']); send(202, evaluations.start(identity.tenant, body, identity.principal)); return; }
+        }
+        if (path === '/v1/operator/evaluations/compare' && req.method === 'POST') { heavy(); const body = await readBody(req, maxBodyBytes); shape(body, ['left', 'right'], ['left', 'right']); send(200, evaluations.compare(identity.tenant, body, identity.principal)); return; }
+        const exportMatch = /^\/v1\/operator\/evaluations\/runs\/([A-Za-z0-9_-]+)\/export$/.exec(path);
+        if (exportMatch && req.method === 'POST') { heavy(); const body = await readBody(req, maxBodyBytes); shape(body, ['format'], ['format']); send(200, evaluations.export(identity.tenant, exportMatch[1], body, identity.principal)); return; }
+        const match = /^\/v1\/operator\/evaluations\/(suites|runs)\/([A-Za-z0-9_-]+)(\/cancel)?$/.exec(path);
+        if (match && req.method === 'GET' && !match[3]) { send(200, match[1] === 'suites' ? evaluations.suite(identity.tenant, match[2]) : evaluations.get(identity.tenant, match[2])); return; }
+        if (match?.[1] === 'runs' && match[3] && req.method === 'POST') { heavy(); shape(await readBody(req, maxBodyBytes), []); send(200, evaluations.cancel(identity.tenant, match[2], identity.principal)); return; }
+      }
+      const timelineMatch = /^\/v1\/operator\/agent\/runs\/([A-Za-z0-9_-]+)\/timeline$/.exec(path);
+      if (timelineMatch && req.method === 'GET') { operator(); queryOptions(url.searchParams, []); assert(agentRuntime, 'LLM_NOT_CONFIGURED'); send(200, taskTimeline(agentRuntime, identity.tenant, timelineMatch[1])); return; }
       if (path === '/v1/operator/agent/plan' && req.method === 'POST') {
         operator(); queryOptions(url.searchParams, []); const body = await readBody(req, maxBodyBytes); shape(body, ['prompt', 'toolMode', 'taskLimits'], ['prompt']); assert(agentRuntime, 'LLM_NOT_CONFIGURED'); send(200, agentRuntime.plan(identity.tenant, body, identity.principal)); return;
       }

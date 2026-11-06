@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { mkdirSync, writeFileSync, existsSync, lstatSync, realpathSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { createDemo } from './demo.js';
 import { createGatewayServer } from './server.js';
@@ -9,6 +9,9 @@ import { attachMcp } from './mcp.js';
 import { assert } from './util.js';
 import { AgentRuntime } from './agent-runtime.js';
 import { configuredOllama } from './ollama.js';
+import { Store } from './store.js';
+import { createBackup, restoreBackup } from './backup.js';
+import { loadConnectorConfig } from './connectors.js';
 
 try {
   const command = process.argv[2] ?? 'serve';
@@ -16,6 +19,16 @@ try {
     const contents = `GATEWAY_MASTER_KEY=${randomBytes(32).toString('hex')}\nGATEWAY_AGENT_TOKEN=${randomBytes(32).toString('hex')}\nGATEWAY_OPERATOR_TOKEN=${randomBytes(32).toString('hex')}\nGATEWAY_VIEWER_TOKEN=${randomBytes(32).toString('hex')}\nGATEWAY_HOST=127.0.0.1\nGATEWAY_PORT=8787\nGATEWAY_DB=var/gateway.sqlite\n`;
     writeFileSync(resolve('.env'), contents, { flag: 'wx', mode: 0o600 });
     console.log('Created .env with fresh local credentials. Keep this file private. Run npm start.');
+  } else if (['backup', 'restore-backup', 'verify-backup'].includes(command)) {
+    const masterKey = process.env.GATEWAY_MASTER_KEY, passphrase = process.env.GATEWAY_BACKUP_PASSPHRASE;
+    assert(/^[a-f0-9]{64}$/.test(masterKey ?? ''), 'MASTER_KEY_REQUIRED');
+    assert(process.argv.length === (command === 'restore-backup' ? 5 : 4), 'BACKUP_ARGUMENTS_REQUIRED');
+    if (command === 'backup') {
+      const source = resolve(process.env.GATEWAY_DB ?? 'var/gateway.sqlite'); assert(existsSync(source), 'BACKUP_SOURCE_REQUIRED');
+      const stat = lstatSync(source); assert(stat.isFile() && !stat.isSymbolicLink() && stat.nlink === 1 && realpathSync(source) === source, 'BACKUP_SOURCE_REJECTED');
+      const store = new Store(source, masterKey);
+      try { console.log(JSON.stringify(await createBackup({ store, output: resolve(process.argv[3]), passphrase }))); } finally { store.close(); }
+    } else console.log(JSON.stringify(await restoreBackup({ input: resolve(process.argv[3]), output: command === 'restore-backup' ? resolve(process.argv[4]) : undefined, passphrase, masterKey, verifyOnly: command === 'verify-backup' })));
   } else {
     assert(['serve', 'mcp', 'verify-audit'].includes(command), 'UNKNOWN_COMMAND');
     const masterKey = process.env.GATEWAY_MASTER_KEY;
@@ -25,7 +38,9 @@ try {
     const metrics = new Metrics();
     const workspace = resolve(process.env.GATEWAY_WORKSPACE_ROOT ?? 'workspace');
     const workspaceEnabled = command !== 'verify-audit' && process.env.GATEWAY_WORKSPACE_ROOT !== 'off' && (Boolean(process.env.GATEWAY_WORKSPACE_ROOT) || existsSync(workspace));
-    const { store, gateway, workspace: workspaceFiles } = createDemo({ path, masterKey, onEvent: metrics.record, workspaceRoot: workspaceEnabled ? workspace : undefined });
+    const connectorPath = process.env.GATEWAY_CONNECTORS_FILE && resolve(process.env.GATEWAY_CONNECTORS_FILE);
+    const { store, gateway, workspace: workspaceFiles } = createDemo({ path, masterKey, onEvent: metrics.record, workspaceRoot: workspaceEnabled ? workspace : undefined,
+      connectorConfig: command === 'verify-audit' || !connectorPath ? undefined : loadConnectorConfig(connectorPath), connectorBaseDir: connectorPath ? dirname(connectorPath) : undefined });
     if (command === 'verify-audit') { console.log(JSON.stringify(store.verifyAudit(), null, 2)); store.close(); }
     else if (command === 'mcp') {
       attachMcp({ gateway, principal: 'demo-agent' });

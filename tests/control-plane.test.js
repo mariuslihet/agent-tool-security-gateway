@@ -1,6 +1,18 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
+test('structured checks API returns numeric evidence and rejects invalid bounds without modifying the saved review', async t => {
+  const f = await host(t, async () => ({ role: 'assistant', content: '{"invoice":{"total":68}}' }));
+  f.agentRuntime.start('demo', { id: 'json-check-api', prompt: 'Return JSON' }); const task = await f.agentRuntime.wait('demo', 'json-check-api'), path = `/v1/operator/agent/runs/${task.id}/checks`;
+  const criteria = { requiredPhrases: [], forbiddenPhrases: [], requiredTools: [], requireCompleted: true, rejectDenied: true, structuredOutput: { required: true, numbers: [{ path: 'invoice.total', min: 68, max: 68 }] } }, input = { expectedRevision: 0, expectedTaskRevision: task.revision, criteria };
+  assert.equal((await f.request(path, 'viewer', input)).status, 403);
+  const response = await f.request(path, 'operator', input); assert.equal(response.status, 200); const result = await response.json(); assert.equal(result.review.passed, true); assert.equal(result.review.checks.at(-1).value.actual, 68);
+  for (const rule of [{ path: 'invoice.total', min: 69, max: 68 }, { path: 'invoice.total', min: '68', max: 68 }, { path: '__proto__', min: 0, max: 1 }]) {
+    const bad = await f.request(path, 'operator', { ...input, expectedRevision: 1, criteria: { ...criteria, structuredOutput: { required: true, numbers: [rule] } } }); assert.equal(bad.status, 400); assert.equal((await bad.json()).code, 'INVALID_TASK_CHECKS');
+  }
+  const saved = await (await f.request(path, 'operator')).json(); assert.equal(saved.review.revision, 1); assert.deepEqual(saved.review.criteria.structuredOutput, criteria.structuredOutput);
+});
+
 test('task review API enforces operator access, exact input, stale receipts and mandatory audit', async t => {
   const f = await host(t, async () => ({ role: 'assistant', content: 'Generated answer' })), path = '/v1/operator/agent/plan', draft = { prompt: 'Hello', toolMode: 'safe' };
   for (const role of ['viewer', 'agent', 'other']) assert.equal((await f.request(path, role, draft)).status, 403);

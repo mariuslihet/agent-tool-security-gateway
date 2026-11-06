@@ -4,7 +4,13 @@
 
 Built with Node.js 24 and its standard library. No runtime dependencies, hosted model, API key, or paid service is required for the demo.
 
-> **Release status: security-focused reference implementation, v0.16.0.** The gateway and its controls are functional; the default publishing and payment tools are simulations. An independent security assessment and deployment-specific isolation are still required before entrusting it with production privileges. See [the threat model](docs/threat-model.md).
+> **Release status: security-focused reference implementation, v0.19.0.** The gateway and its controls are functional; the default publishing and payment tools are simulations. An independent security assessment and deployment-specific isolation are still required before entrusting it with production privileges. See [the threat model](docs/threat-model.md).
+
+Version 0.19 adds a visual evaluation criteria builder for phrases, completed tools, JSON and up to eight number ranges, plus audited JSON/CSV result snapshots with browser checksum verification and spreadsheet formula protection. See [evaluation editing and exports](docs/evaluations.md#visual-criteria-and-result-exports).
+
+Version 0.18 adds six operator capabilities: real host-configured read-only SQLite connectors, reusable model evaluation suites and result comparisons, recorded-request policy comparisons, authenticated task timelines, fresh operational diagnostics, and encrypted host backup/verify/restore commands. See [connectors](docs/connectors.md), [evaluations](docs/evaluations.md), [investigation and diagnostics](docs/operator-insights.md), and [backup recovery](docs/backup.md). Database queries are fixed by the host; evaluation suites cannot grant write tools. Restores always create a new database.
+
+Version 0.17 adds structured answer checks: require a JSON object, validate exact numbers or inclusive ranges in nested fields, and inspect expected versus actual values. Checks reject duplicate keys and numeric strings, remain encrypted/audited, and never call the model. See [structured checks](docs/task-acceptance.md#structured-answer-and-number-checks).
 
 Version 0.16 adds an audited **Review task** workflow: inspect actual host-granted tools, budgets, potential approval rules, simulation/egress labels, prompt findings and capacity before starting. Reviewed starts bind the prompt and configuration to a receipt and reject changes. Review calls never invoke the model or create sessions. See [task review](docs/task-review.md).
 
@@ -197,6 +203,9 @@ Keep the agent process separate from the gateway. Give only the gateway access t
 - [Compare saved reports](docs/report-comparison.md)
 - [Version 0.14 verification](docs/verification-v0.14.md)
 - [Task acceptance checks](docs/task-acceptance.md)
+- [Version 0.19 verification](docs/verification-v0.19.md)
+- [Version 0.18 verification](docs/verification-v0.18.md)
+- [Version 0.17 verification](docs/verification-v0.17.md)
 - [Version 0.16 verification](docs/verification-v0.16.md)
 - [Version 0.15 verification](docs/verification-v0.15.md)
 - [Security reporting](SECURITY.md)

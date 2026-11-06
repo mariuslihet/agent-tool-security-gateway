@@ -20,3 +20,8 @@ export { templateVariables, renderPromptTemplate, TEMPLATE_VARIABLE_LIMITS } fro
 export { compareReportText, REPORT_DIFF_LIMITS } from './report-diff.js';
 export { TaskChecks, evaluateTaskChecks, TASK_CHECK_LIMITS, DEFAULT_TASK_CHECKS } from './task-checks.js';
 export { registerWorkspaceTools, WORKSPACE_LIMITS, WORKSPACE_LIBRARY_LIMITS } from './workspace-tools.js';
+
+export { EvaluationService, EVALUATION_LIMITS } from './evaluations.js';
+export { loadConnectorConfig, registerReadOnlyConnectors, CONNECTOR_LIMITS } from './connectors.js';
+export { createBackup, restoreBackup, BACKUP_LIMITS } from './backup.js';
+export { compareRecordedPolicy, taskTimeline, operationalDiagnostics } from './operator-insights.js';
